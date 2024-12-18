@@ -1,79 +1,102 @@
 #include <stdio.h>
-#include <ncurses.h>
 #include <stdlib.h>
+#include <string.h>
+#include <ncurses.h>
 
 int main(int argc, char* argv[]) {
+    // window and cursor tracking
+    int max_x = 0, max_y = 0;
+    int cx = 0, cy = 0;
+    int c = '\0';
+
+    // TODO: rework with structs (paragraph struct -> sentence struct -> word struct)
+    // we store things in a buffer, then write to the screen and keep a data structure in tact
+    // the buffer is small (32) and is analyzed+zeroed upon 'overflow' then stored in the data structure
+    char buffer[32];
+    memset(buffer, '\0', sizeof(buffer));
+    int buffer_idx = 0;
+
+    int number_of_sentences = 32;
+    int sentence_malloc_interval = 64;
+
+    char** sentences = malloc(number_of_sentences * sizeof(char*));
+    if (!sentences) {
+        printf("Could not allocate memory!");
+        exit(1);
+    }
+    memset(sentences, 0, number_of_sentences * sizeof(char*));
+
+    for (int i = 0; i < number_of_sentences; i++) {
+        sentences[i] = malloc(sentence_malloc_interval * sizeof(char));
+        if (!sentences[i]) {
+            printf("Could not allocate memory!");
+            // TODO: register cleanup functions with atexit
+            exit(1);
+        }
+
+        // zero out line
+        memset(sentences[i], 0, sentence_malloc_interval * sizeof(char));
+    }
+
     // setup ncurses
     initscr();
     cbreak();
     noecho();
     keypad(stdscr, TRUE);
 
-    // window and cursor tracking
-    int max_x = 0, max_y = 0;
-    int cx = 0, cy = 0;
-    int c = '\0';
-
-    // create a line that holds characters
-    int number_of_lines = 32;
-    char** lines = malloc(number_of_lines);
-    if (!lines) {
-        printf("Could not allocate memory!");
-        exit(1);
-    }
-    for (int i = 0; i < number_of_lines; i++) {
-        lines[i] = malloc(32);
-        if (!lines[i]) {
-            printf("Could not allocate memory!");
-            // TODO: register cleanup functions with atexit
-            exit(1);
-        }
-    }
-    int line_idx = 0;
-    int curr_line_idx = 0;
-
-    // set timeout
-    while(1) {
+    // input loop
+    int run_loop = 1;
+    while(run_loop) {
         timeout(33);
-        getyx(stdscr, cy, cx);
         getmaxyx(stdscr, max_y, max_x);
 
         // query user inputs
         // comments refer to the case below their line
         c = getch();
         switch (c) {
-        case EOF:
         // esc
-        case 27:
+        case '\e':
+            run_loop = 0;
+            break;
+        // nothing
+        case EOF:
             break;
         case KEY_BACKSPACE:
-            move(cy, cx - 1);
-            delch();
-            lines[line_idx][curr_line_idx] = '\0';
-            curr_line_idx--;
+            if (buffer_idx > 0) {
+                buffer_idx--;
+                buffer[buffer_idx] = '\0';
+            }
             break;
-        case KEY_ENTER:
-            move(cy + 1, cx);
-            lines[line_idx][curr_line_idx] = '\0';
-            // reset the cursor to start (TODO: be smarter about this)
-            curr_line_idx = 0;
-            line_idx++;
         default:
-            lines[line_idx][curr_line_idx] = c;
-            addch(lines[line_idx][curr_line_idx]);
-            curr_line_idx++;
+            buffer[buffer_idx] = c;
+            buffer_idx++;
             break;
         }
 
+        // render the contents of the buffer to the screen
+        // TODO: split by paragraph, sentence, word, char
+        // analyze the buffer every time we overflow its size
+        // or every time our structure becomes empty
+        // the current active portion of the buffer is tacked onto the end
+        cy = 0;
+        cx = 0;
+        for (int i = 0; i < strlen(buffer); i++) {
+            move(cy, cx);
+            addch(buffer[i]);
+            cx++;
+        }
         refresh();
     }
 
-    // free allocations
-    for (int i = 0; i < number_of_lines; i++) {
-        free(lines[i]);
-    }
-    free(lines);
-
+    // clean up ncurses
     endwin();
+
+    // test out splitting the buffer into sentences and free allocations
+    for (int i = 0; i < number_of_sentences; i++) {
+        printf("%s ", sentences[i]);
+        free(sentences[i]);
+    }
+    printf("\n");
+    free(sentences);
     return 0;
 }
