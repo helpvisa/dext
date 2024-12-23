@@ -5,3 +5,6 @@ structure-parser
 # filetypes
 *.o
 *.swp
+
+# testing
+*.test
