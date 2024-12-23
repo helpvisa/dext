@@ -3,12 +3,14 @@
 
 #include "structs.h"
 
-// initialize structures
-struct Word* init_word();
+// initialize and free structures
+int init_word(struct Word** new_word);
+void free_word(struct Word** dead_word);
 struct Line* init_line();
 struct Paragraph* init_paragraph();
 
 // parse data
-int break_into_paragraphs(char** buffer);
+int break_into_paragraphs(char* buffer);
+int break_into_words(struct Word** words, char* buffer, int buff_size);
 
 #endif

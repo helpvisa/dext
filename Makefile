@@ -4,18 +4,22 @@ CC = cc
 LDLIBS = -lncurses
 LDFLAGS =
 CFLAGS =
-OUTPUT = dext
 PREFIX = /usr/local
 
-all: main.o
-	$(CC) -Wall $(LDFLAGS) -o $(OUTPUT) main.o $(LDLIBS)
+all: main.o parse.o
+	$(CC) -Wall $(LDFLAGS) -o dext main.o $(LDLIBS)
+	$(CC) -Wall $(LDFLAGS) -o structure-parser parse.o create_structures.o $(LDLIBS)
+
 main.o: main.c
+parse.o: parse.c create_structures.o 
+create_structures.o: create_structures.c structs.h
 
 install: all
-	cp $(OUTPUT) $(PREFIX)/bin/
+	cp dext $(PREFIX)/bin/
 
 clean:
-	rm -f ./$(OUTPUT)
+	rm -f ./dext
+	rm -f ./structure-parser
 	rm -f ./*.o
 
 .SUFFIXES: .c .o

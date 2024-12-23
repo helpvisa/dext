@@ -3,6 +3,8 @@
 
 struct Word {
     char* characters;
+    int size;
+    int allocated_chars;
 };
 
 struct Line {

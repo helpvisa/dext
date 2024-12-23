@@ -1,3 +1,7 @@
+# binaries
 dext
-parse_sentences
+structure-parser
+
+# filetypes
 *.o
+*.swp
