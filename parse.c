@@ -21,24 +21,24 @@ int main(int argc, char* argv[]) {
     }
 
     // display formatted input + count totals
-    allocated_memory += sizeof(struct Body);
-    allocated_memory += sizeof(struct Paragraph*) * main_body->allocated;
+    allocated_memory += sizeof(*main_body);
     for (int p = 0; p < main_body->size; p++) {
         total_lines += main_body->paragraphs[p]->size;
         total_chars += main_body->paragraphs[p]->size - 1; // newlines
-        allocated_memory += sizeof(struct Line*) * main_body->paragraphs[p]->allocated;
+        allocated_memory += sizeof(*main_body->paragraphs[p]);
         for (int l = 0; l < main_body->paragraphs[p]->size; l++) {
             total_words += main_body->paragraphs[p]->formatted_lines[l]->size;
             total_chars += main_body->paragraphs[p]->formatted_lines[l]->size - 1; // spaces
-            allocated_memory += sizeof(struct Word*) * main_body->paragraphs[p]->formatted_lines[l]->allocated;
+            allocated_memory += sizeof(*main_body->paragraphs[p]->formatted_lines[l]);
             for (int w = 0; w < main_body->paragraphs[p]->formatted_lines[l]->size; w++) {
                 total_chars += main_body->paragraphs[p]->formatted_lines[l]->words[w]->size;
+                allocated_memory += sizeof(*main_body->paragraphs[p]->formatted_lines[l]->words[w]);
                 allocated_memory += sizeof(char) * main_body->paragraphs[p]->formatted_lines[l]->words[w]->allocated;
                 printf("%s", main_body->paragraphs[p]->formatted_lines[l]->words[w]->characters);
             }
-            /* printf("\n"); */
+            printf("\n");
         }
-        /* printf("\n\n"); */
+        printf("\n\n");
     }
     printf("\n");
     printf("----------------------------------------------------\n");
