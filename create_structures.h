@@ -22,6 +22,7 @@ void free_body(struct Body** dead_body);
 
 // parse data
 int break_into_words(struct Line** line, char* buffer, int buff_size);
+int organize_paragraph_content(struct Paragraph** paragraph, int line_length);
 int break_into_paragraphs(struct Body** body, char* buffer, int buff_size);
 
 #endif

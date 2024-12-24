@@ -111,7 +111,8 @@ int init_paragraph(struct Paragraph** new_paragraph) {
 
     (*new_paragraph)->size = 0;
     (*new_paragraph)->allocated = ALLOC_STEP;
-    (*new_paragraph)->content = malloc(sizeof(struct Line));
+    (*new_paragraph)->content = NULL;
+    init_line(&(*new_paragraph)->content);
 
     return 0;
 }
@@ -142,7 +143,8 @@ void free_paragraph(struct Paragraph** dead_paragraph) {
     free((*dead_paragraph)->formatted_lines);
     (*dead_paragraph)->formatted_lines = NULL;
     if ((*dead_paragraph)->content) {
-        free_line(&(*dead_paragraph)->content);
+        // we do not need to call free_line here; they have already been freed
+        // by the above loop since their pointers are shared
         free((*dead_paragraph)->content);
         (*dead_paragraph)->content = NULL;
     }
@@ -198,8 +200,13 @@ void free_body(struct Body** dead_body) {
 }
 
 
-// take a buffer and split it into components
+// functions for splitting apart buffers
 int break_into_words(struct Line** line, char* buffer, int buff_size) {
+    // abort if line is null
+    if (NULL == line || NULL == (*line)) {
+        return -1;
+    }
+
     int idx = 0;
 
     while (idx < buff_size && buffer[idx] != '\0' && buffer[idx] != EOF) {
@@ -231,6 +238,48 @@ int break_into_words(struct Line** line, char* buffer, int buff_size) {
     return (*line)->size;
 }
 
+int organize_paragraph_content(struct Paragraph** paragraph, int line_length) {
+    int idx = 0;
+
+    if (NULL == (*paragraph)->content) {
+        return -1;
+    }
+
+    while (idx < (*paragraph)->content->size) {
+        int curr_line_length = 0;
+        struct Line* new_line = NULL;
+        init_line(&new_line);
+
+        int line_overflowed = 0;
+        do {
+            if (NULL == (*paragraph)->content->words[idx]) {
+                break;
+            }
+
+            if ((*paragraph)->content->words[idx]->size + curr_line_length < line_length) {
+                curr_line_length += (*paragraph)->content->words[idx]->size;
+                new_line->words[new_line->size] = (*paragraph)->content->words[idx];
+                new_line->size++;
+                if (new_line->size == new_line->allocated) {
+                    allocate_memory_to_line(&new_line);
+                }
+                idx++; 
+            } else {
+                line_overflowed = 1;
+            }
+        } while (line_overflowed == 0);
+
+        if (new_line->size > 0) {
+            (*paragraph)->formatted_lines[(*paragraph)->size] = new_line;
+            (*paragraph)->size++;
+        } else {
+            free_line(&new_line);
+        }
+    }
+
+    return (*paragraph)->size;
+}
+
 int break_into_paragraphs(struct Body** body, char* buffer, int buff_size) {
     int idx = 0;
     char* temp_buffer = NULL;
@@ -249,8 +298,6 @@ int break_into_paragraphs(struct Body** body, char* buffer, int buff_size) {
             continue;
         }
 
-        struct Line* main_line = NULL;
-        init_line(&main_line);
         struct Paragraph* new_paragraph = NULL;
         init_paragraph(&new_paragraph);
 
@@ -272,10 +319,10 @@ int break_into_paragraphs(struct Body** body, char* buffer, int buff_size) {
         }
         idx++;
         
-        break_into_words(&main_line,
+        break_into_words(&new_paragraph->content,
                          temp_buffer,
                          allocated_to_temp_buffer);
-        new_paragraph->content = main_line;
+        organize_paragraph_content(&new_paragraph, 72);
         (*body)->paragraphs[(*body)->size] = new_paragraph;
         (*body)->size++;
         if ((*body)->size == (*body)->allocated) {
