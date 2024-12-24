@@ -209,14 +209,13 @@ int break_into_words(struct Line** line, char* buffer, int buff_size) {
 
     int idx = 0;
 
-    while (idx < buff_size && buffer[idx] != '\0' && buffer[idx] != EOF) {
+    while (idx < buff_size && buffer[idx] != '\0') {
         struct Word* new_word = NULL;
         init_word(&new_word);
 
         while (buffer[idx] != ' ' &&
                buffer[idx] != '\n' &&
                buffer[idx] != '\t' &&
-               buffer[idx] != EOF &&
                buffer[idx] != '\0') {
             new_word->characters[new_word->size] = buffer[idx];
             new_word->size++;
@@ -225,7 +224,9 @@ int break_into_words(struct Line** line, char* buffer, int buff_size) {
             }
             idx++;
         }
-        idx++; // move past the space
+        new_word->characters[new_word->size] = buffer[idx];
+        new_word->size++;
+        idx++; // move past the splitting character
 
         new_word->characters[new_word->size] = '\0';
         (*line)->words[(*line)->size] = new_word;
@@ -251,12 +252,12 @@ int organize_paragraph_content(struct Paragraph** paragraph, int line_length) {
         init_line(&new_line);
 
         int line_overflowed = 0;
-        do {
+        while (!line_overflowed) {
             if (NULL == (*paragraph)->content->words[idx]) {
                 break;
             }
 
-            if ((*paragraph)->content->words[idx]->size + curr_line_length < line_length) {
+            if ((*paragraph)->content->words[idx]->size + curr_line_length <= line_length) {
                 curr_line_length += (*paragraph)->content->words[idx]->size;
                 new_line->words[new_line->size] = (*paragraph)->content->words[idx];
                 new_line->size++;
@@ -267,7 +268,7 @@ int organize_paragraph_content(struct Paragraph** paragraph, int line_length) {
             } else {
                 line_overflowed = 1;
             }
-        } while (line_overflowed == 0);
+        }
 
         if (new_line->size > 0) {
             (*paragraph)->formatted_lines[(*paragraph)->size] = new_line;
@@ -293,15 +294,17 @@ int break_into_paragraphs(struct Body** body, char* buffer, int buff_size) {
         int temp_buffer_idx = 0;
         memset(temp_buffer, 0, allocated_to_temp_buffer);
 
-        if (temp_buffer_idx == 0 && buffer[idx] == '\n') {
-            idx++;
-            continue;
-        }
+        /* if (temp_buffer_idx == 0 && buffer[idx] == '\n') { */
+        /*     idx++; */
+        /*     continue; */
+        /* } */
 
         struct Paragraph* new_paragraph = NULL;
         init_paragraph(&new_paragraph);
 
-        while (buffer[idx] != '\n') {
+        while (temp_buffer_idx == 0 ||
+               temp_buffer[temp_buffer_idx - 1] == '\n' ||
+               buffer[idx] != '\n') {
             temp_buffer[temp_buffer_idx] = buffer[idx];
             temp_buffer_idx++;
             idx++;
@@ -317,6 +320,8 @@ int break_into_paragraphs(struct Body** body, char* buffer, int buff_size) {
                 allocated_to_temp_buffer = new_buffsize;
             }
         }
+        temp_buffer[temp_buffer_idx] = buffer[idx];
+        temp_buffer_idx++;
         idx++;
         
         break_into_words(&new_paragraph->content,

@@ -34,12 +34,13 @@ int main(int argc, char* argv[]) {
             for (int w = 0; w < main_body->paragraphs[p]->formatted_lines[l]->size; w++) {
                 total_chars += main_body->paragraphs[p]->formatted_lines[l]->words[w]->size;
                 allocated_memory += sizeof(char) * main_body->paragraphs[p]->formatted_lines[l]->words[w]->allocated;
-                printf("%s ", main_body->paragraphs[p]->formatted_lines[l]->words[w]->characters);
+                printf("%s", main_body->paragraphs[p]->formatted_lines[l]->words[w]->characters);
             }
-            printf("\n");
+            /* printf("\n"); */
         }
-        printf("\n\n");
+        /* printf("\n\n"); */
     }
+    printf("\n");
     printf("----------------------------------------------------\n");
     printf("|                DOCUMENT TOTALS                   |\n");
     printf("----------------------------------------------------\n");

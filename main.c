@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ncurses.h>
+#include "structs.h"
+#include "create_structures.h"
+
+#define BUFFER_ALLOC_INTERVAL 2048
 
 int main(int argc, char* argv[]) {
     // window and cursor tracking
@@ -10,35 +14,23 @@ int main(int argc, char* argv[]) {
     int cx = 0, cy = 0;
     int c = '\0';
 
-    // TODO: rework with structs (paragraph struct -> sentence struct -> word struct)
-    // we store things in a buffer, then write to the screen and keep a data structure in tact
-    // the buffer is small (32) and is analyzed+zeroed upon 'overflow' then stored in the data structure
-    char buffer[1024];
-    memset(buffer, '\0', sizeof(buffer));
+    // setup buffer
+    int buffer_size = BUFFER_ALLOC_INTERVAL;
+    char* buffer = NULL;
+    buffer = malloc(buffer_size * sizeof(char));
+    if (NULL == buffer) {
+        return -1;
+    }
+    memset(buffer, 0, buffer_size);
     int buffer_idx = 0;
 
-    int allocated_sentences = 512;
-    int sentence_malloc_interval = 512;
-    int number_of_sentences = 0;
-
-    char** sentences = malloc(allocated_sentences * sizeof(char*));
-    if (!sentences) {
-        printf("Could not allocate memory!");
-        exit(1);
-    }
-    memset(sentences, 0, allocated_sentences * sizeof(char*));
-
-    for (int i = 0; i < allocated_sentences; i++) {
-        sentences[i] = malloc(sentence_malloc_interval * sizeof(char));
-        if (!sentences[i]) {
-            printf("Could not allocate memory!");
-            // TODO: register cleanup functions with atexit
-            exit(1);
-        }
-
-        // zero out line
-        memset(sentences[i], 0, sentence_malloc_interval * sizeof(char));
-    }
+    // setup body structure
+    int number_of_paragraphs = 0;
+    int number_of_lines = 0;
+    int number_of_words = 0;
+    int number_of_chars = 0;
+    struct Body* main_body = NULL;
+    init_body(&main_body);
 
     // setup ncurses
     initscr();
@@ -75,98 +67,66 @@ int main(int argc, char* argv[]) {
             break;
         }
 
-        // break contents of buffer into sentences
-        number_of_sentences = 0;
-        int char_idx = 0;
-        for (int i = 0; i < strlen(buffer); i++) {
-            char curr = buffer[i];
-            char next = buffer[i + 1];
-            switch (buffer[i]) {
-            case '.':
-                if (next == '.' || next == '?' || next == '!') {
-                    sentences[number_of_sentences][char_idx] = curr;
-                    sentences[number_of_sentences][char_idx + 1] = '\0';
-                    char_idx++;
-                    break;
+        // process our buffer for rendering and info display
+        free_body(&main_body);
+        init_body(&main_body);
+        number_of_paragraphs = break_into_paragraphs(&main_body, buffer, buffer_size);
+        number_of_lines = 0;
+        number_of_words = 0;
+        number_of_chars = 0;
+
+        // clear and render the contents of the buffer to the screen
+        erase();
+
+        // main body
+        left_margin = max_x / 2 - 36;
+        cy = 0;
+        cx = left_margin;
+        move(cy, cx);
+        for (int p = 0; p < number_of_paragraphs; p++) {
+            struct Paragraph* temp_paragraph = main_body->paragraphs[p];
+            number_of_lines += temp_paragraph->size;
+            for (int l = 0; l < temp_paragraph->size; l++) {
+                cx = left_margin;
+                move(cy, cx);
+                struct Line* temp_line = main_body->paragraphs[p]->formatted_lines[l];
+                number_of_words += temp_line->size;
+                for (int w = 0; w < temp_line->size; w++) {
+                    struct Word* temp_word = temp_line->words[w];
+                    number_of_chars += temp_word->size;
+                    for (int c = 0; c < strlen(temp_word->characters); c++) {
+                        addch(temp_word->characters[c]);
+                        if (temp_word->characters[c] == '\n') {
+                            cy++;
+                            cx = left_margin;
+                        } else {
+                            cx++;
+                        }
+                        move(cy, cx);
+                    }
                 }
-            case '?':
-            case '!':
-                sentences[number_of_sentences][char_idx] = curr;
-                sentences[number_of_sentences][char_idx + 1] = '\0';
-                number_of_sentences++;
-                char_idx = 0;
-                break;
-            case ' ':
-                if (char_idx != 0) {
-                    sentences[number_of_sentences][char_idx] = curr;
-                    sentences[number_of_sentences][char_idx + 1] = '\0';
-                    char_idx++;
-                }
-                break;
-            default:
-                sentences[number_of_sentences][char_idx] = curr;
-                sentences[number_of_sentences][char_idx + 1] = '\0';
-                char_idx++;
-                break;
             }
         }
 
-        // render the contents of the buffer to the screen
-        erase();
-        left_margin = max_x / 2 - 36;
-        right_margin = max_x / 2 + 36;
-        cy = 0;
-        cx = left_margin;
-        int length_of_buffer = strlen(buffer);
-        // TODO: enhance these 3 lines. this is way too naive and leads to layout alterations
-        // use words per line as a better metric. Likely will have to reflow text...
-        // do we build a structure for rendering?
-        int starting_idx = 0;
-        int number_of_visible_lines = length_of_buffer / 72;
-        if (number_of_visible_lines > max_y - 2) {
-            starting_idx = (number_of_visible_lines - (max_y - 2)) * 72;
-        }
-        for (int i = starting_idx; i < length_of_buffer; i++) {
-            int temp_cx = cx;
-            for (int k = i; buffer[k] != ' ' && buffer[k] != '\0' && buffer[k] != '\n'; k++) {
-                temp_cx++;
-                if (temp_cx > right_margin && k - i < 16) {
-                    cx = left_margin;
-                    cy++;
-                    break;
-                }
-            }
-            move(cy, cx);
-            if (cx == left_margin && buffer[i] == ' ') {
-                ;
-            } else {
-                addch(buffer[i]);
-            }
-            if (buffer[i] == '\n') {
-                cx = left_margin;
-                cy++;
-            } else {
-                cx++;
-            }
-            if (cx > right_margin) {
-                cx = left_margin;
-                cy++;
-            }
-        }
+        // statusline
+        move(max_y - 1, 0);
+        printw("paragraphs: %i | lines: %i | words: %i | characters: %i",
+               number_of_paragraphs, number_of_lines, number_of_words, number_of_chars);
+
+        // finalize cursor position
+        move(cy, cx);
         refresh();
     }
 
     // clean up ncurses
     endwin();
 
-    // test out splitting the buffer into sentences and free allocations
-    for (int i = 0; i < allocated_sentences; i++) {
-        if (i < number_of_sentences + 1) {
-            printf("%2i| %s\n", i + 1, sentences[i]);
-        }
-        free(sentences[i]);
-    }
-    printf("\n");
-    free(sentences);
+    // free up allocations
+    free(buffer);
+    buffer = NULL;
+    free_body(&main_body);
+    free(main_body);
+    main_body = NULL;
+
     return 0;
 }
