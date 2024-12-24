@@ -15,7 +15,14 @@ struct Line {
 };
 
 struct Paragraph {
-    struct Line** lines;
+    struct Line* content;
+    struct Line** formatted_lines;
+    int size;
+    int allocated;
+};
+
+struct Body {
+    struct Paragraph** paragraphs;
     int size;
     int allocated;
 };
