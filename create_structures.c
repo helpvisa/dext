@@ -224,8 +224,6 @@ int break_into_words(struct Line** line, char* buffer, int buff_size) {
             }
             idx++;
         }
-        new_word->characters[new_word->size] = buffer[idx];
-        new_word->size++;
         idx++; // move past the splitting character
 
         new_word->characters[new_word->size] = '\0';
@@ -294,17 +292,15 @@ int break_into_paragraphs(struct Body** body, char* buffer, int buff_size) {
         int temp_buffer_idx = 0;
         memset(temp_buffer, 0, allocated_to_temp_buffer);
 
-        /* if (temp_buffer_idx == 0 && buffer[idx] == '\n') { */
-        /*     idx++; */
-        /*     continue; */
-        /* } */
+        if (temp_buffer_idx == 0 && buffer[idx] == '\n') {
+            idx++;
+            continue;
+        }
 
         struct Paragraph* new_paragraph = NULL;
         init_paragraph(&new_paragraph);
 
-        while (temp_buffer_idx == 0 ||
-               temp_buffer[temp_buffer_idx - 1] == '\n' ||
-               buffer[idx] != '\n') {
+        while (buffer[idx] != '\n') {
             temp_buffer[temp_buffer_idx] = buffer[idx];
             temp_buffer_idx++;
             idx++;
