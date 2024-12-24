@@ -5,6 +5,7 @@ dewc
 # filetypes
 *.o
 *.swp
+*.swo
 
 # testing
 *.test
