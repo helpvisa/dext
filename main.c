@@ -3,9 +3,10 @@
 #include <string.h>
 #include <ncurses.h>
 #include "structs.h"
+#include "buffers.h"
 #include "create_structures.h"
 
-#define BUFFER_ALLOC_INTERVAL 2048
+#define BUFFER_ALLOC_INTERVAL 16
 
 int main(int argc, char* argv[]) {
     // general editor modes
@@ -18,14 +19,12 @@ int main(int argc, char* argv[]) {
     int ox = 0, oy = 0;
     int c = '\0';
 
-    // setup buffer
-    int buffer_size = BUFFER_ALLOC_INTERVAL;
-    char* buffer = NULL;
-    buffer = malloc(buffer_size * sizeof(char));
-    if (NULL == buffer) {
-        return -1;
+    // set up lines and their buffers
+    struct Buffer* buffer = NULL;
+    if (init_buffer(&buffer, BUFFER_ALLOC_INTERVAL) < 0) {
+        exit(1);
     }
-    memset(buffer, 0, buffer_size);
+    int line_idx = 0;
     int buffer_idx = 0;
 
     // setup body structure
@@ -48,6 +47,9 @@ int main(int argc, char* argv[]) {
     while(run_loop) {
         timeout(1000);
         getmaxyx(stdscr, max_y, max_x);
+
+        // reset memory counter
+        int total_allocated_bytes_of_memory = 0;
 
         // query user inputs
         // comments refer to the case below their line
@@ -85,8 +87,8 @@ int main(int argc, char* argv[]) {
             if (buffer_idx > 0) {
                 buffer_idx--;
                 int reverse_idx = buffer_idx;
-                while (buffer[reverse_idx] != '\0') {
-                    buffer[reverse_idx] = buffer[reverse_idx + 1];
+                while (reverse_idx < buffer->allocated && buffer->content[reverse_idx] != '\0') {
+                    buffer->content[reverse_idx] = buffer->content[reverse_idx + 1];
                     reverse_idx++;
                 }
             }
@@ -98,27 +100,27 @@ int main(int argc, char* argv[]) {
             }
             break;
         case KEY_RIGHT:
-            if (buffer[buffer_idx] != '\0') {
+            if (buffer->content[buffer_idx] != '\0') {
                 buffer_idx++;
                 ox++;
             }
             break;
         default:
-            if (buffer[buffer_idx] == '\0' || !insert) {
-                buffer[buffer_idx] = c;
+            if (buffer->content[buffer_idx] == '\0' || !insert) {
+                buffer->content[buffer_idx] = c;
                 if (ox < 0) {
                     ox++;
                 }
             } else {
                 int reverse_idx = buffer_idx;
-                while (buffer[reverse_idx] != '\0') {
+                while (reverse_idx < buffer->allocated && buffer->content[reverse_idx] != '\0') {
                     reverse_idx++;
                 }
                 while (reverse_idx >= buffer_idx) {
-                    buffer[reverse_idx + 1] = buffer[reverse_idx];
+                    buffer->content[reverse_idx + 1] = buffer->content[reverse_idx];
                     reverse_idx--;
                 }
-                buffer[buffer_idx] = c;
+                buffer->content[buffer_idx] = c;
             }
             buffer_idx++;
             break;
@@ -127,7 +129,7 @@ int main(int argc, char* argv[]) {
         // process our buffer for rendering and info display
         free_body(&main_body);
         init_body(&main_body);
-        number_of_paragraphs = break_into_paragraphs(&main_body, buffer, buffer_size);
+        number_of_paragraphs = break_into_paragraphs(&main_body, buffer->content, buffer->allocated);
         number_of_lines = 0;
         number_of_words = 0;
         number_of_chars = 0;
@@ -140,18 +142,23 @@ int main(int argc, char* argv[]) {
         cy = 0;
         cx = left_margin;
         move(cy, cx);
+        total_allocated_bytes_of_memory += sizeof(*main_body);
         for (int p = 0; p < number_of_paragraphs; p++) {
             struct Paragraph* temp_paragraph = main_body->paragraphs[p];
+            total_allocated_bytes_of_memory += sizeof(*temp_paragraph);
             for (int l = 0; l < temp_paragraph->size; l++) {
                 cx = left_margin;
                 move(cy, cx);
                 struct Line* temp_line = main_body->paragraphs[p]->formatted_lines[l];
                 number_of_lines++;
+                total_allocated_bytes_of_memory += sizeof(*temp_line);
                 for (int w = 0; w < temp_line->size; w++) {
                     struct Word* temp_word = temp_line->words[w];
                     number_of_words++;
+                    total_allocated_bytes_of_memory += sizeof(*temp_word);
                     for (int c = 0; c < strlen(temp_word->characters); c++) {
                         number_of_chars++;
+                        total_allocated_bytes_of_memory += sizeof(char);
                         addch(temp_word->characters[c]);
                         if (temp_word->characters[c] == '\n') {
                             cy++;
@@ -160,13 +167,6 @@ int main(int argc, char* argv[]) {
                             cx++;
                         }
                     }
-                    // if we manually input newlines, this ensures proper
-                    // cursor placement
-                    move(cy, cx);
-                }
-                // move cursor down for all but last line
-                if (l < temp_paragraph->size - 1) {
-                    cy++;
                 }
             }
         }
@@ -180,6 +180,17 @@ int main(int argc, char* argv[]) {
         } else {
             printw("REPLACING");
         }
+        printw(" | buffer_idx: %i", buffer_idx);
+
+        // if buffer_idx equals the currently allocated value, it needs expansion
+        if (buffer_idx >= buffer->allocated) {
+            allocate_memory_to_buffer(&buffer, BUFFER_ALLOC_INTERVAL);
+        }
+        printw(" | buffer size: %i", buffer->allocated);
+        total_allocated_bytes_of_memory += buffer->allocated * sizeof(char);
+        printw(" | memory allocated: %i bytes (%.2f kilobytes)",
+               total_allocated_bytes_of_memory,
+               (double)total_allocated_bytes_of_memory / 1000);
 
         // finalize cursor position
         cy += oy;
@@ -192,8 +203,7 @@ int main(int argc, char* argv[]) {
     endwin();
 
     // free up allocations
-    free(buffer);
-    buffer = NULL;
+    free_buffer(&buffer);
     free_body(&main_body);
     free(main_body);
     main_body = NULL;

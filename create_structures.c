@@ -2,22 +2,23 @@
 #include <stdio.h>
 #include <string.h>
 #include "structs.h"
+#include "helpers.h"
 
 #define ALLOC_STEP 64
-
 
 // initialize and free structures
 int init_word(struct Word** new_word) {
     *new_word = malloc(sizeof(**new_word));
-    if (!*new_word) {
-        return 1;
+    if (NULL == *new_word) {
+        return -1;
     }
     memset(*new_word, 0, sizeof(**new_word));
 
     (*new_word)->characters = malloc(ALLOC_STEP * sizeof(char));
-    if (!(*new_word)->characters) {
-        return 1;
+    if (NULL == (*new_word)->characters) {
+        return -1;
     }
+    memset((*new_word)->characters, 0, ALLOC_STEP * sizeof(char));
 
     (*new_word)->size = 0;
     (*new_word)->allocated = ALLOC_STEP;
@@ -30,8 +31,8 @@ int allocate_memory_to_word(struct Word** word) {
     char* new_allocation = NULL;
     new_allocation = realloc((*word)->characters,
                              new_alloc_count * sizeof(char));
-    if (!new_allocation) {
-        return 1;
+    if (NULL == new_allocation) {
+        return -1;
     }
 
     (*word)->characters = new_allocation;
@@ -50,14 +51,14 @@ void free_word(struct Word** dead_word) {
 
 int init_line(struct Line** new_line) {
     *new_line = malloc(sizeof(**new_line));
-    if (!(*new_line)) {
-        return 1;
+    if (NULL == *new_line) {
+        return -1;
     }
     memset(*new_line, 0, sizeof(**new_line));
 
     (*new_line)->words = malloc(ALLOC_STEP * sizeof(struct Word*));
-    if (!(*new_line)->words) {
-        return 1;
+    if (NULL == (*new_line)->words) {
+        return -1;
     }
     memset((*new_line)->words, 0, ALLOC_STEP * sizeof(struct Word*));
 
@@ -73,8 +74,8 @@ int allocate_memory_to_line(struct Line** line) {
     struct Word** new_allocation = NULL;
     new_allocation = realloc((*line)->words,
                              new_alloc_count * sizeof(struct Word*));
-    if (!new_allocation) {
-        return 1;
+    if (NULL == new_allocation) {
+        return -1;
     }
 
     (*line)->words = new_allocation;
@@ -98,14 +99,14 @@ void free_line(struct Line** dead_line) {
 
 int init_paragraph(struct Paragraph** new_paragraph) {
     *new_paragraph = malloc(sizeof(**new_paragraph));
-    if (!new_paragraph) {
-        return 1;
+    if (NULL == *new_paragraph) {
+        return -1;
     }
     memset(*new_paragraph, 0, sizeof(**new_paragraph));
 
     (*new_paragraph)->formatted_lines = malloc(ALLOC_STEP * sizeof(struct Line*));
-    if (!(*new_paragraph)->formatted_lines) {
-        return 1;
+    if (NULL == (*new_paragraph)->formatted_lines) {
+        return -1;
     }
     memset((*new_paragraph)->formatted_lines, 0, ALLOC_STEP * sizeof(struct Line*));
 
@@ -123,8 +124,8 @@ int allocate_memory_to_paragraph(struct Paragraph** paragraph) {
     struct Line** new_allocation = NULL;
     new_allocation = realloc((*paragraph)->formatted_lines,
                              new_alloc_count * sizeof(struct Line*));
-    if (!new_allocation) {
-        return 1;
+    if (NULL == new_allocation) {
+        return -1;
     }
 
     (*paragraph)->formatted_lines = new_allocation;
@@ -154,14 +155,14 @@ void free_paragraph(struct Paragraph** dead_paragraph) {
 
 int init_body(struct Body** new_body) {
     *new_body = malloc(sizeof(**new_body));
-    if (!new_body) {
-        return 1;
+    if (NULL == *new_body) {
+        return -1;
     }
     memset(*new_body, 0, sizeof(**new_body));
 
     (*new_body)->paragraphs = malloc(ALLOC_STEP * sizeof(struct Paragraph*));
-    if (!(*new_body)->paragraphs) {
-        return 1;
+    if (NULL == (*new_body)->paragraphs) {
+        return -1;
     }
     memset((*new_body)->paragraphs, 0, ALLOC_STEP * sizeof(struct Paragraph*));
 
@@ -177,8 +178,8 @@ int allocate_memory_to_body(struct Body** body) {
     struct Paragraph** new_allocation = NULL;
     new_allocation = realloc((*body)->paragraphs,
                              new_alloc_count * sizeof(struct Paragraph*));
-    if (!new_allocation) {
-        return 1;
+    if (NULL == new_allocation) {
+        return -1;
     }
 
     (*body)->paragraphs = new_allocation;
@@ -219,7 +220,7 @@ int break_into_words(struct Line** line, char* buffer, int buff_size) {
                buffer[idx] != '\0') {
             new_word->characters[new_word->size] = buffer[idx];
             new_word->size++;
-            if (new_word->size == new_word->allocated) {
+            if (new_word->size >= new_word->allocated) {
                 allocate_memory_to_word(&new_word);
             }
             idx++;
@@ -229,7 +230,7 @@ int break_into_words(struct Line** line, char* buffer, int buff_size) {
         new_word->characters[new_word->size] = '\0';
         (*line)->words[(*line)->size] = new_word;
         (*line)->size++;
-        if ((*line)->size == (*line)->allocated) {
+        if ((*line)->size >= (*line)->allocated) {
             allocate_memory_to_line(line);
         }
     }
@@ -259,7 +260,7 @@ int organize_paragraph_content(struct Paragraph** paragraph, int line_length) {
                 curr_line_length += (*paragraph)->content->words[idx]->size;
                 new_line->words[new_line->size] = (*paragraph)->content->words[idx];
                 new_line->size++;
-                if (new_line->size == new_line->allocated) {
+                if (new_line->size >= new_line->allocated) {
                     allocate_memory_to_line(&new_line);
                 }
                 idx++; 
@@ -283,7 +284,7 @@ int break_into_paragraphs(struct Body** body, char* buffer, int buff_size) {
     int idx = 0;
     char* temp_buffer = NULL;
     temp_buffer = malloc(ALLOC_STEP * sizeof(char));
-    if (!temp_buffer) {
+    if (NULL == temp_buffer) {
         return -1;
     }
     int allocated_to_temp_buffer = ALLOC_STEP;
@@ -292,6 +293,7 @@ int break_into_paragraphs(struct Body** body, char* buffer, int buff_size) {
         int temp_buffer_idx = 0;
         memset(temp_buffer, 0, allocated_to_temp_buffer);
 
+        // don't count one-off newlines as their own paragraphs
         if (temp_buffer_idx == 0 && buffer[idx] == '\n') {
             idx++;
             continue;
@@ -300,24 +302,21 @@ int break_into_paragraphs(struct Body** body, char* buffer, int buff_size) {
         struct Paragraph* new_paragraph = NULL;
         init_paragraph(&new_paragraph);
 
-        while (buffer[idx] != '\n') {
+        while (idx < buff_size && buffer[idx] != '\n') {
             temp_buffer[temp_buffer_idx] = buffer[idx];
             temp_buffer_idx++;
             idx++;
 
-            if (temp_buffer_idx == allocated_to_temp_buffer) {
-                int new_buffsize = allocated_to_temp_buffer + ALLOC_STEP;
-                char* new_allocation = realloc(temp_buffer, new_buffsize);
-                if (!new_allocation) {
+            if (temp_buffer_idx >= allocated_to_temp_buffer) {
+                allocated_to_temp_buffer = expand_buffer(&temp_buffer,
+                                                         allocated_to_temp_buffer,
+                                                         ALLOC_STEP);
+                if (allocated_to_temp_buffer < 0) {
                     return -1;
                 }
-                temp_buffer = new_allocation;
-                memset(temp_buffer + allocated_to_temp_buffer, 0, ALLOC_STEP);
-                allocated_to_temp_buffer = new_buffsize;
             }
         }
-        temp_buffer[temp_buffer_idx] = buffer[idx];
-        temp_buffer_idx++;
+        // skip the newline, since it's been seen now
         idx++;
         
         break_into_words(&new_paragraph->content,
@@ -326,7 +325,7 @@ int break_into_paragraphs(struct Body** body, char* buffer, int buff_size) {
         organize_paragraph_content(&new_paragraph, 72);
         (*body)->paragraphs[(*body)->size] = new_paragraph;
         (*body)->size++;
-        if ((*body)->size == (*body)->allocated) {
+        if ((*body)->size >= (*body)->allocated) {
             allocate_memory_to_body(body);
         }
     }

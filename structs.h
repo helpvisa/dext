@@ -27,4 +27,15 @@ struct Body {
     int allocated;
 };
 
+// structures for buffer and line editing
+struct Buffer {
+    char* content;
+    int allocated;
+};
+
+struct LineBuffer {
+    struct Buffer** buffers;
+    int allocated;
+};
+
 #endif
