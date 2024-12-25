@@ -24,28 +24,27 @@ int main(int argc, char* argv[]) {
     allocated_memory += sizeof(*main_body);
     for (int p = 0; p < main_body->size; p++) {
         total_lines += main_body->paragraphs[p]->size;
-        total_chars += main_body->paragraphs[p]->size - 1; // newlines
+        total_chars += main_body->paragraphs[p]->size;
         allocated_memory += sizeof(*main_body->paragraphs[p]);
         for (int l = 0; l < main_body->paragraphs[p]->size; l++) {
             total_words += main_body->paragraphs[p]->formatted_lines[l]->size;
-            total_chars += main_body->paragraphs[p]->formatted_lines[l]->size - 1; // spaces
+            total_chars += main_body->paragraphs[p]->formatted_lines[l]->size;
             allocated_memory += sizeof(*main_body->paragraphs[p]->formatted_lines[l]);
             for (int w = 0; w < main_body->paragraphs[p]->formatted_lines[l]->size; w++) {
                 total_chars += main_body->paragraphs[p]->formatted_lines[l]->words[w]->size;
                 allocated_memory += sizeof(*main_body->paragraphs[p]->formatted_lines[l]->words[w]);
                 allocated_memory += sizeof(char) * main_body->paragraphs[p]->formatted_lines[l]->words[w]->allocated;
-                printf("%s", main_body->paragraphs[p]->formatted_lines[l]->words[w]->characters);
+                printf("%s ", main_body->paragraphs[p]->formatted_lines[l]->words[w]->characters);
             }
-            printf("\n");
         }
-        printf("\n\n");
+        printf("\n");
     }
     printf("\n");
     printf("----------------------------------------------------\n");
     printf("|                DOCUMENT TOTALS                   |\n");
     printf("----------------------------------------------------\n");
     printf("%20i | paragraphs\n"
-            "%20i | lines\n"
+            "%20i | sentences\n"
             "%20i | words\n"
             "%20i | characters\n",
             total_paragraphs, total_lines, total_words, total_chars);

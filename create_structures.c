@@ -241,7 +241,7 @@ int break_into_words(struct Line** line, char* buffer, int buff_size) {
 int organize_paragraph_content(struct Paragraph** paragraph, int line_length) {
     int idx = 0;
 
-    if (NULL == (*paragraph)->content) {
+    if (NULL == *paragraph || NULL == (*paragraph)->content) {
         return -1;
     }
 
@@ -275,6 +275,44 @@ int organize_paragraph_content(struct Paragraph** paragraph, int line_length) {
         } else {
             free_line(&new_line);
         }
+    }
+
+    return (*paragraph)->size;
+}
+
+int break_into_sentences(struct Paragraph** paragraph) {
+    if (NULL == *paragraph || NULL == (*paragraph)->content) {
+        return -1;
+    }
+
+    int idx = 0;
+    while (idx < (*paragraph)->content->size) {
+        struct Line* new_line = NULL;
+        init_line(&new_line);
+
+        int found_terminator = 0;
+        while (!found_terminator) {
+            if (NULL == (*paragraph)->content->words[idx]) {
+                free_line(&new_line);
+                return -1;
+            }
+            for (int c = 0; c < (*paragraph)->content->words[idx]->size; c++) {
+                char current_char = (*paragraph)->content->words[idx]->characters[c];
+                if (current_char == '.' || current_char == '!' || current_char == '?') {
+                    found_terminator = 1;
+                    break;
+                }
+            }
+            new_line->words[new_line->size] = (*paragraph)->content->words[idx];
+            new_line->size++;
+            if (new_line->size >= new_line->allocated) {
+                allocate_memory_to_line(&new_line);
+            }
+            idx++; 
+        }
+
+        (*paragraph)->formatted_lines[(*paragraph)->size] = new_line;
+        (*paragraph)->size++;
     }
 
     return (*paragraph)->size;
@@ -323,6 +361,7 @@ int break_into_paragraphs(struct Body** body, char* buffer, int buff_size) {
                          temp_buffer,
                          allocated_to_temp_buffer);
         organize_paragraph_content(&new_paragraph, 72);
+        /* break_into_sentences(&new_paragraph); */
         (*body)->paragraphs[(*body)->size] = new_paragraph;
         (*body)->size++;
         if ((*body)->size >= (*body)->allocated) {
