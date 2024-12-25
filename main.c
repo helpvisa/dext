@@ -4,9 +4,8 @@
 #include <ncurses.h>
 #include "structs.h"
 #include "buffers.h"
-#include "create_structures.h"
 
-#define BUFFER_ALLOC_INTERVAL 16
+#define ALLOC_STEP 8
 
 int main(int argc, char* argv[]) {
     // general editor modes
@@ -14,26 +13,21 @@ int main(int argc, char* argv[]) {
 
     // window and cursor tracking
     int max_x = 0, max_y = 0;
-    int left_margin = 0, right_margin = 0;
+    int left_margin = 0;
     int cx = 0, cy = 0;
     int ox = 0, oy = 0;
     int c = '\0';
 
     // set up lines and their buffers
-    struct Buffer* buffer = NULL;
-    if (init_buffer(&buffer, BUFFER_ALLOC_INTERVAL) < 0) {
-        exit(1);
-    }
     int line_idx = 0;
     int buffer_idx = 0;
-
-    // setup body structure
-    int number_of_paragraphs = 0;
-    int number_of_lines = 0;
-    int number_of_words = 0;
-    int number_of_chars = 0;
-    struct Body* main_body = NULL;
-    init_body(&main_body);
+    struct Line *first_line = malloc(sizeof(*first_line));
+    first_line->buffer = NULL;
+    first_line->next = NULL;
+    if (init_buffer(&first_line->buffer, ALLOC_STEP) < 0) {
+        exit(1);
+    }
+    Buffer *buffer = first_line->buffer;
 
     // setup ncurses
     initscr();
@@ -47,9 +41,6 @@ int main(int argc, char* argv[]) {
     while(run_loop) {
         timeout(1000);
         getmaxyx(stdscr, max_y, max_x);
-
-        // reset memory counter
-        int total_allocated_bytes_of_memory = 0;
 
         // query user inputs
         // comments refer to the case below their line
@@ -126,71 +117,36 @@ int main(int argc, char* argv[]) {
             break;
         }
 
-        // process our buffer for rendering and info display
-        free_body(&main_body);
-        init_body(&main_body);
-        number_of_paragraphs = break_into_paragraphs(&main_body, buffer->content, buffer->allocated);
-        number_of_lines = 0;
-        number_of_words = 0;
-        number_of_chars = 0;
-
         // clear and render the contents of the buffer to the screen
         erase();
+
+        // statusline
+        move(max_y - 1, 0);
+        if (insert) {
+            printw("INSERTING");
+        } else {
+            printw("REPLACING");
+        }
+        printw(" | line_idx: %i", line_idx);
+        printw(" | buffer_idx: %i", buffer_idx);
+
+        // if buffer_idx equals the currently allocated value, it needs expansion
+        if (buffer_idx >= buffer->allocated) {
+            expand_buffer(&buffer, ALLOC_STEP);
+        }
+        printw(" | current buffer size: %i", buffer->allocated);
 
         // main body
         left_margin = max_x / 2 - 36;
         cy = 0;
         cx = left_margin;
         move(cy, cx);
-        total_allocated_bytes_of_memory += sizeof(*main_body);
-        for (int p = 0; p < number_of_paragraphs; p++) {
-            struct Paragraph* temp_paragraph = main_body->paragraphs[p];
-            total_allocated_bytes_of_memory += sizeof(*temp_paragraph);
-            for (int l = 0; l < temp_paragraph->size; l++) {
-                cx = left_margin;
-                move(cy, cx);
-                struct Line* temp_line = main_body->paragraphs[p]->formatted_lines[l];
-                number_of_lines++;
-                total_allocated_bytes_of_memory += sizeof(*temp_line);
-                for (int w = 0; w < temp_line->size; w++) {
-                    struct Word* temp_word = temp_line->words[w];
-                    number_of_words++;
-                    total_allocated_bytes_of_memory += sizeof(*temp_word);
-                    for (int c = 0; c < strlen(temp_word->characters); c++) {
-                        number_of_chars++;
-                        total_allocated_bytes_of_memory += sizeof(char);
-                        addch(temp_word->characters[c]);
-                        if (temp_word->characters[c] == '\n') {
-                            cy++;
-                            cx = left_margin;
-                        } else {
-                            cx++;
-                        }
-                    }
-                }
-            }
+        int i = 0;
+        while (i < buffer->allocated && '\0' != buffer->content[i]) {
+            addch(buffer->content[i]);
+            cx++;
+            i++;
         }
-
-        // statusline
-        move(max_y - 1, 0);
-        printw("paragraphs: %i | lines: %i | words: %i | characters: %i | ",
-               number_of_paragraphs, number_of_lines, number_of_words, number_of_chars);
-        if (insert) {
-            printw("INSERTING");
-        } else {
-            printw("REPLACING");
-        }
-        printw(" | buffer_idx: %i", buffer_idx);
-
-        // if buffer_idx equals the currently allocated value, it needs expansion
-        if (buffer_idx >= buffer->allocated) {
-            allocate_memory_to_buffer(&buffer, BUFFER_ALLOC_INTERVAL);
-        }
-        printw(" | buffer size: %i", buffer->allocated);
-        total_allocated_bytes_of_memory += buffer->allocated * sizeof(char);
-        printw(" | memory allocated: %i bytes (%.2f kilobytes)",
-               total_allocated_bytes_of_memory,
-               (double)total_allocated_bytes_of_memory / 1000);
 
         // finalize cursor position
         cy += oy;
@@ -203,10 +159,7 @@ int main(int argc, char* argv[]) {
     endwin();
 
     // free up allocations
-    free_buffer(&buffer);
-    free_body(&main_body);
-    free(main_body);
-    main_body = NULL;
+    remove_line(&first_line, &first_line);
 
     return 0;
 }

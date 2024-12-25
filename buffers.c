@@ -1,45 +1,101 @@
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include "structs.h"
 
-int init_buffer(struct Buffer** new_buffer, int allocation) {
-    *new_buffer = malloc(sizeof(**new_buffer));
-    if (NULL == *new_buffer) {
-        return -1;
+void free_buffer(Buffer **buffer) {
+    if (*buffer) {
+        if ((*buffer)->content) {
+            free((*buffer)->content);
+        }
+        free(*buffer);
     }
-    memset(*new_buffer, 0, sizeof(**new_buffer));
-
-    (*new_buffer)->content = malloc(allocation * sizeof(char));
-    if (NULL == (*new_buffer)->content) {
-        return -1;
-    }
-    memset((*new_buffer)->content, 0, allocation * sizeof(char));
-
-    (*new_buffer)->allocated = allocation;
-
-    return 0;
 }
 
-int allocate_memory_to_buffer(struct Buffer** buffer, int step) {
-    int old_alloc_count = (*buffer)->allocated;
-    int new_alloc_count = old_alloc_count + step;
-    char* new_allocation = NULL;
-    new_allocation = realloc((*buffer)->content,
-                             new_alloc_count * sizeof(char));
-    if (NULL == new_allocation) {
-        return -1;
+uint64_t init_buffer(Buffer **buffer, uint64_t initial_allocation) {
+    uint64_t to_allocate = initial_allocation * sizeof(char);
+
+    // re-initialize if buffer is not empty
+    if (*buffer) {
+        free_buffer(buffer);
     }
 
-    (*buffer)->content = new_allocation;
-    (*buffer)->allocated = new_alloc_count;
-    memset((*buffer)->content + old_alloc_count, 0, step);
+    *buffer = malloc(sizeof(**buffer));
+    if (NULL == *buffer) {
+        return -1;
+    }
+    (*buffer)->content = malloc(to_allocate);
+    if (NULL == (*buffer)->content) {
+        // we did not successfully allocate memory
+        (*buffer)->allocated = 0;
+        return -1;
+    }
+    (*buffer)->allocated = to_allocate;
 
-    return 0;
+    return to_allocate;
 }
 
-void free_buffer(struct Buffer** dead_buffer) {
-    free((*dead_buffer)->content);
-    (*dead_buffer)->content = NULL;
-    free(*dead_buffer);
-    *dead_buffer = NULL;
+uint64_t expand_buffer(Buffer **buffer, uint64_t expansion_amount) {
+    uint64_t new_size = (*buffer)->allocated + expansion_amount * sizeof(char);
+
+    char* temp_allocation = realloc((*buffer)->content, new_size);
+    if (NULL == temp_allocation) {
+        return -1;
+    }
+    (*buffer)->content = temp_allocation;
+    // zero our newly allocated memory chunk
+    memset((*buffer)->content + (*buffer)->allocated, 0, expansion_amount);
+    (*buffer)->allocated = new_size;
+
+    return new_size;
+}
+
+void add_line_to_beginning(struct Line **head, Buffer *buffer) {
+    struct Line *new_line = malloc(sizeof(*new_line));
+    new_line->buffer = buffer;
+    new_line->next = *head;
+    *head = new_line;
+}
+
+void add_line_to_end(struct Line **head, Buffer *buffer) {
+    struct Line *new_line = malloc(sizeof(*new_line));
+    new_line->buffer = buffer;
+    new_line->next = NULL;
+
+    if (NULL == *head) {
+        *head = new_line;
+        return;
+    }
+
+    struct Line *current_line = *head;
+    while (NULL != current_line->next) {
+        current_line = current_line->next;
+    }
+    current_line->next = new_line;
+}
+
+void remove_line(struct Line **head, struct Line **to_remove) {
+    struct Line *current_line = *head, *previous_line;
+
+    if (NULL != current_line && current_line->buffer == (*to_remove)->buffer) {
+        *to_remove = current_line->next;
+        *head = current_line->next;
+        free_buffer(&current_line->buffer);
+        free(current_line);
+        return;
+    }
+
+    while (NULL != current_line && current_line->buffer != (*to_remove)->buffer) {
+        previous_line = current_line;
+        current_line = current_line->next;
+    }
+
+    if (NULL == current_line) {
+        return;
+    }
+
+    previous_line->next = current_line->next;
+    *to_remove = previous_line;
+    free_buffer(&current_line->buffer);
+    free(current_line);
 }
