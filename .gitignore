@@ -6,6 +6,7 @@ dewc
 *.o
 *.swp
 *.swo
+*.vim
 
 # testing
 *.test

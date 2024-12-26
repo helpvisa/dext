@@ -1,7 +1,10 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include "structs.h"
+
+const int alloc_step = 128;
 
 void free_buffer(Buffer **buffer) {
     if (*buffer) {
@@ -12,8 +15,8 @@ void free_buffer(Buffer **buffer) {
     }
 }
 
-uint64_t init_buffer(Buffer **buffer, uint64_t initial_allocation) {
-    uint64_t to_allocate = initial_allocation * sizeof(char);
+uint64_t init_buffer(Buffer **buffer) {
+    uint64_t to_allocate = alloc_step * sizeof(char);
 
     // re-initialize if buffer is not empty
     if (*buffer) {
@@ -31,12 +34,13 @@ uint64_t init_buffer(Buffer **buffer, uint64_t initial_allocation) {
         return -1;
     }
     (*buffer)->allocated = to_allocate;
+    memset((*buffer)->content, 0, alloc_step);
 
     return to_allocate;
 }
 
-uint64_t expand_buffer(Buffer **buffer, uint64_t expansion_amount) {
-    uint64_t new_size = (*buffer)->allocated + expansion_amount * sizeof(char);
+uint64_t expand_buffer(Buffer **buffer) {
+    uint64_t new_size = (*buffer)->allocated + alloc_step;
 
     char* temp_allocation = realloc((*buffer)->content, new_size);
     if (NULL == temp_allocation) {
@@ -44,7 +48,7 @@ uint64_t expand_buffer(Buffer **buffer, uint64_t expansion_amount) {
     }
     (*buffer)->content = temp_allocation;
     // zero our newly allocated memory chunk
-    memset((*buffer)->content + (*buffer)->allocated, 0, expansion_amount);
+    memset((*buffer)->content + (*buffer)->allocated, 0, alloc_step);
     (*buffer)->allocated = new_size;
 
     return new_size;
@@ -72,6 +76,13 @@ void add_line_to_end(struct Line **head, Buffer *buffer) {
         current_line = current_line->next;
     }
     current_line->next = new_line;
+}
+
+void insert_line(struct Line **ref, Buffer *buffer) {
+    struct Line *new_line = malloc(sizeof(*new_line));
+    new_line->buffer = buffer;
+    new_line->next = (*ref)->next;
+    (*ref)->next = new_line;
 }
 
 void remove_line(struct Line **head, struct Line **to_remove) {

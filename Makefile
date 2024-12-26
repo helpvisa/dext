@@ -6,11 +6,12 @@ LDFLAGS =
 CFLAGS =
 PREFIX = /usr/local
 
-all: main.o buffers.o
-	$(CC) -Wall $(LDFLAGS) -o dext main.o buffers.o $(LDLIBS)
+all: main.o
+	$(CC) -Wall $(LDFLAGS) -o dext main.o buffers.o helpers.o $(LDLIBS)
 
-main.o: main.c buffers.o
-buffers.o: buffers.c
+main.o: main.c buffers.o helpers.o
+buffers.o: buffers.c buffers.h
+helpers.o: helpers.c helpers.h
 
 install: all
 	cp dext $(PREFIX)/bin/
