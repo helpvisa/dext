@@ -7,6 +7,8 @@
 #include "helpers.h"
 
 int main(int argc, char* argv[]) {
+    // use to paint *immediately* upon first launch
+    int is_first_loop = 1;
     // general editor modes
     int insert = 1;
 
@@ -38,7 +40,12 @@ int main(int argc, char* argv[]) {
     // input loop
     int run_loop = 1;
     while(run_loop) {
-        timeout(1000);
+        if (is_first_loop) {
+            timeout(1);
+            is_first_loop = 0;
+        } else {
+            timeout(1000);
+        }
         getmaxyx(stdscr, max_y, max_x);
 
         if (max_y < 8 || max_x < 72) {
