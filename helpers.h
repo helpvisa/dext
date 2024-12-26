@@ -14,5 +14,8 @@ void process_character_for_buffer(
     char character,
     int insert_mode
 );
+void delete_character_from_buffer(Buffer* buffer, int buffer_index);
+void pilfer_character_from_buffer(Buffer* next_buffer, Buffer* current_buffer);
+void push_to_next_buffer(Buffer* next_buffer, Buffer* current_buffer, int buffer_index);
 
 #endif
