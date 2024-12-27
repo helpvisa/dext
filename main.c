@@ -6,6 +6,8 @@
 #include "buffers.h"
 #include "helpers.h"
 
+static const int renderable_line_length = 72;
+
 int main(int argc, char* argv[]) {
     // use to paint *immediately* upon first launch
     int is_first_loop = 1;
@@ -48,11 +50,11 @@ int main(int argc, char* argv[]) {
         }
         getmaxyx(stdscr, max_y, max_x);
 
-        if (max_y < 8 || max_x < 72) {
+        if (max_y < 8 || max_x < renderable_line_length) {
             curs_set(FALSE);
             erase();
             move(0,0);
-            printw("Please resize to at least:\n8 rows\n72 columns");
+            printw("Please resize to at least:\n8 rows\n%i columns", renderable_line_length);
             refresh();
             continue;
         }
@@ -96,25 +98,93 @@ int main(int argc, char* argv[]) {
                 buffer_idx = strlen(current_line->buffer->content) - 1;
                 if (line_idx < total_lines - 1) {
                     pilfer_character_from_buffer(current_line->next->buffer, current_line->buffer);
+                    if (strlen(current_line->next->buffer->content) < 1) {
+                        remove_line(&first_line, current_line->next);
+                        total_lines--;
+                    }
                 }
             }
             break;
         case KEY_LEFT:
             if (buffer_idx > 0) {
                 buffer_idx--;
+            } else if (line_idx > 0) {
+                line_idx--;
+                current_line = find_line_at_index(first_line, line_idx);
+                buffer_idx = strlen(current_line->buffer->content) - 1;
             }
             break;
         case KEY_RIGHT:
-            if (current_line->buffer->content[buffer_idx] != '\0') {
+            if (current_line->buffer->content[buffer_idx] != '\0' &&
+                current_line->buffer->content[buffer_idx] != '\n') {
                 buffer_idx++;
+            } else if (line_idx < total_lines - 1) {
+                line_idx++;
+                current_line = find_line_at_index(first_line, line_idx);
+                buffer_idx = 0;
             }
             break;
+        // why is this so hard.
         case KEY_UP:
+            /* if (line_idx > 0 && strlen(current_line->buffer->content) <= renderable_line_length) { */
+            /*     line_idx--; */
+            /*     current_line = find_line_at_index(first_line, line_idx); */
+            /*     buffer_idx -= (strlen(current_line->buffer->content) - 1) % renderable_line_length; */
+            /*     buffer_idx = strlen(current_line->buffer->content) - 1 + buffer_idx; */
+            /*     if (buffer_idx > strlen(current_line->buffer->content) - 1) { */
+            /*         buffer_idx = strlen(current_line->buffer->content); */
+            /*     } */
+            /* } else if (strlen(current_line->buffer->content) > renderable_line_length) { */
+            /*     buffer_idx -= renderable_line_length; */
+            /*     if (buffer_idx < 0) { */
+            /*         if (line_idx > 0) { */
+            /*             line_idx--; */
+            /*             current_line = find_line_at_index(first_line, line_idx); */
+            /*             buffer_idx -= (strlen(current_line->buffer->content) - 1) % renderable_line_length; */
+            /*             buffer_idx = strlen(current_line->buffer->content) - 1 + buffer_idx; */
+            /*             if (buffer_idx > strlen(current_line->buffer->content) - 1) { */
+            /*                 buffer_idx = strlen(current_line->buffer->content); */
+            /*             } */
+            /*         } else { */
+            /*             buffer_idx = 0; */
+            /*         } */
+            /*     } */
+            /* } else { */
+            /*     buffer_idx = 0; */
+            /* } */
             break;
         case KEY_DOWN:
+            /* if (strlen(current_line->buffer->content) > renderable_line_length) { */
+            /*     buffer_idx += renderable_line_length; */
+            /*     if (buffer_idx > strlen(current_line->buffer->content) - 1) { */
+            /*         if (line_idx < total_lines - 1) { */
+            /*             buffer_idx -= strlen(current_line->buffer->content) - 1 % renderable_line_length; */
+            /*             line_idx++; */
+            /*             current_line = find_line_at_index(first_line, line_idx); */
+            /*             if (buffer_idx > strlen(current_line->buffer->content) - 1) { */
+            /*                 buffer_idx = strlen(current_line->buffer->content); */
+            /*             } */
+            /*         } else { */
+            /*             buffer_idx = strlen(current_line->buffer->content); */
+            /*         } */
+            /*     } */
+            /* } else { */
+            /*     buffer_idx += (strlen(current_line->buffer->content) - 1) % renderable_line_length; */
+            /*     if (buffer_idx > strlen(current_line->buffer->content) - 1) { */
+            /*         if (line_idx < total_lines - 1) { */
+            /*             buffer_idx -= strlen(current_line->buffer->content) - 1 % renderable_line_length; */
+            /*             line_idx++; */
+            /*             current_line = find_line_at_index(first_line, line_idx); */
+            /*             if (buffer_idx > strlen(current_line->buffer->content) - 1) { */
+            /*                 buffer_idx = strlen(current_line->buffer->content); */
+            /*             } */
+            /*         } else { */
+            /*             buffer_idx = strlen(current_line->buffer->content); */
+            /*         } */
+            /*     } */
+            /* } */
             break;
         case '\n':
-            // we have to do this first; we cannot declare right after label :/
             process_character_for_buffer(current_line->buffer, buffer_idx, c, insert);
             line_idx++;
             buffer_idx++;
@@ -146,7 +216,7 @@ int main(int argc, char* argv[]) {
             printw("REPLACING");
         }
         printw(" | line_idx: %i", line_idx);
-        /* printw(" | total lines: %i", total_lines); */
+        printw(" | total lines: %i", total_lines);
         printw(" | buffer_idx: %i", buffer_idx);
         printw(" | current buffer size: %lu", current_line->buffer->allocated);
         for (int i = 0; i < max_x; i++) {
@@ -160,23 +230,39 @@ int main(int argc, char* argv[]) {
         cy = 0;
         cx = left_margin;
         // render lines and their buffers to the screen
-        move(cy, cx);
-        int i = 0;
-        while (i < current_line->buffer->allocated &&
-               '\0' != current_line->buffer->content[i]) {
-            if (current_line->buffer->content[i] == '\n') {
-                cy++;
-                cx = left_margin;
+        struct Line* line_to_render = first_line;
+        while (line_to_render != NULL) {
+            move(cy, cx);
+            int i = 0;
+            int wrap_counter = 1;
+            while (i < line_to_render->buffer->allocated &&
+                   '\0' != line_to_render->buffer->content[i] &&
+                   '\n' != line_to_render->buffer->content[i]) {
                 move(cy, cx);
-            } else {
-                addch(current_line->buffer->content[i]);
+                addch(line_to_render->buffer->content[i]);
+                cx++;
+                i++;
+                wrap_counter++;
+                if (wrap_counter > renderable_line_length) {
+                    wrap_counter = 1;
+                    cx = left_margin;
+                    cy++;
+                }
             }
-            i++;
+            line_to_render = line_to_render->next;
+            cx = left_margin;
+            cy++;
         }
 
         // finalize cursor position
         cy = line_idx;
-        cx = left_margin + buffer_idx - (line_idx * 72);
+        // this is brute force but it works...
+        line_to_render = first_line;
+        while (NULL != line_to_render) {
+            cy += strlen(line_to_render->buffer->content) / renderable_line_length;
+            line_to_render = line_to_render->next;
+        }
+        cx = left_margin + buffer_idx % renderable_line_length;
         move(cy, cx);
         refresh();
     }
@@ -189,7 +275,7 @@ int main(int argc, char* argv[]) {
     while (NULL != current_line) {
         struct Line* line_to_remove = current_line;
         current_line = current_line->next;
-        remove_line(&first_line, &line_to_remove);
+        remove_line(&first_line, line_to_remove);
     }
 
     return 0;

@@ -10,3 +10,4 @@ dewc
 
 # testing
 *.test
+*.log

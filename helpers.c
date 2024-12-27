@@ -5,7 +5,7 @@
 
 void insert_into_buffer(Buffer* buffer, int idx, char c) {
     // first, check if a reallocation is needed outright
-    if (idx >= buffer->allocated) {
+    if (idx >= buffer->allocated - 1) {
         expand_buffer(&buffer);
     }
     // walk forward thru buffer to make room for insertion
@@ -14,7 +14,7 @@ void insert_into_buffer(Buffer* buffer, int idx, char c) {
         reverse_idx++;
     }
     // it is possible we need to reallocate if we are inserting b/w chars
-    if (reverse_idx >= buffer->allocated) {
+    if (reverse_idx >= buffer->allocated - 1) {
         expand_buffer(&buffer);
     }
     // move chars forward to make room b/w
@@ -27,7 +27,7 @@ void insert_into_buffer(Buffer* buffer, int idx, char c) {
 }
 
 void replace_in_buffer(Buffer* buffer, int idx, char c) {
-    if (idx >= buffer->allocated) {
+    if (idx >= buffer->allocated - 1) {
         expand_buffer(&buffer);
     }
     buffer->content[idx] = c;
