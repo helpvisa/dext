@@ -6,8 +6,6 @@
 #include "buffers.h"
 #include "helpers.h"
 
-static const int renderable_line_length = 72;
-
 int main(int argc, char* argv[]) {
     // use to paint *immediately* upon first launch
     int is_first_loop = 1;
@@ -16,7 +14,6 @@ int main(int argc, char* argv[]) {
 
     // window and cursor tracking
     int max_x = 0, max_y = 0;
-    int left_margin = 0;
     int cx = 0, cy = 0;
     int c = '\0';
 
@@ -24,6 +21,8 @@ int main(int argc, char* argv[]) {
     int total_lines = 1;
     int line_idx = 0;
     int buffer_idx = 0;
+    int view_offset_x = 0;
+    int view_offset_y = 0;
     struct Line* first_line = malloc(sizeof(*first_line));
     first_line->buffer = NULL;
     if (init_buffer(&first_line->buffer) < 0) {
@@ -34,7 +33,13 @@ int main(int argc, char* argv[]) {
 
     // setup ncurses
     initscr();
-    cbreak();
+    if (has_colors()) {
+        start_color();
+    }
+    init_pair(1, COLOR_WHITE, COLOR_BLACK);
+    init_pair(2, COLOR_CYAN, COLOR_BLACK);
+    init_pair(3, COLOR_RED, COLOR_BLACK);
+    raw();
     noecho();
     keypad(stdscr, TRUE);
     set_escdelay(10);
@@ -49,15 +54,6 @@ int main(int argc, char* argv[]) {
             timeout(1000);
         }
         getmaxyx(stdscr, max_y, max_x);
-
-        if (max_y < 8 || max_x < renderable_line_length) {
-            curs_set(FALSE);
-            erase();
-            move(0,0);
-            printw("Please resize to at least:\n8 rows\n%i columns", renderable_line_length);
-            refresh();
-            continue;
-        }
 
         // query user inputs
         // comments refer to the case below their line
@@ -126,63 +122,27 @@ int main(int argc, char* argv[]) {
             break;
         // why is this so hard.
         case KEY_UP:
-            /* if (line_idx > 0 && strlen(current_line->buffer->content) <= renderable_line_length) { */
-            /*     line_idx--; */
-            /*     current_line = find_line_at_index(first_line, line_idx); */
-            /*     buffer_idx -= (strlen(current_line->buffer->content) - 1) % renderable_line_length; */
-            /*     buffer_idx = strlen(current_line->buffer->content) - 1 + buffer_idx; */
-            /*     if (buffer_idx > strlen(current_line->buffer->content) - 1) { */
-            /*         buffer_idx = strlen(current_line->buffer->content); */
-            /*     } */
-            /* } else if (strlen(current_line->buffer->content) > renderable_line_length) { */
-            /*     buffer_idx -= renderable_line_length; */
-            /*     if (buffer_idx < 0) { */
-            /*         if (line_idx > 0) { */
-            /*             line_idx--; */
-            /*             current_line = find_line_at_index(first_line, line_idx); */
-            /*             buffer_idx -= (strlen(current_line->buffer->content) - 1) % renderable_line_length; */
-            /*             buffer_idx = strlen(current_line->buffer->content) - 1 + buffer_idx; */
-            /*             if (buffer_idx > strlen(current_line->buffer->content) - 1) { */
-            /*                 buffer_idx = strlen(current_line->buffer->content); */
-            /*             } */
-            /*         } else { */
-            /*             buffer_idx = 0; */
-            /*         } */
-            /*     } */
-            /* } else { */
-            /*     buffer_idx = 0; */
-            /* } */
+            if (line_idx > 0) {
+                line_idx--;
+                current_line = find_line_at_index(first_line, line_idx);
+                if (buffer_idx > strlen(current_line->buffer->content)) {
+                    // we subtract 1 to account for the newline char
+                    buffer_idx = strlen(current_line->buffer->content) - 1;
+                }
+            } else {
+                buffer_idx = 0;
+            }
             break;
         case KEY_DOWN:
-            /* if (strlen(current_line->buffer->content) > renderable_line_length) { */
-            /*     buffer_idx += renderable_line_length; */
-            /*     if (buffer_idx > strlen(current_line->buffer->content) - 1) { */
-            /*         if (line_idx < total_lines - 1) { */
-            /*             buffer_idx -= strlen(current_line->buffer->content) - 1 % renderable_line_length; */
-            /*             line_idx++; */
-            /*             current_line = find_line_at_index(first_line, line_idx); */
-            /*             if (buffer_idx > strlen(current_line->buffer->content) - 1) { */
-            /*                 buffer_idx = strlen(current_line->buffer->content); */
-            /*             } */
-            /*         } else { */
-            /*             buffer_idx = strlen(current_line->buffer->content); */
-            /*         } */
-            /*     } */
-            /* } else { */
-            /*     buffer_idx += (strlen(current_line->buffer->content) - 1) % renderable_line_length; */
-            /*     if (buffer_idx > strlen(current_line->buffer->content) - 1) { */
-            /*         if (line_idx < total_lines - 1) { */
-            /*             buffer_idx -= strlen(current_line->buffer->content) - 1 % renderable_line_length; */
-            /*             line_idx++; */
-            /*             current_line = find_line_at_index(first_line, line_idx); */
-            /*             if (buffer_idx > strlen(current_line->buffer->content) - 1) { */
-            /*                 buffer_idx = strlen(current_line->buffer->content); */
-            /*             } */
-            /*         } else { */
-            /*             buffer_idx = strlen(current_line->buffer->content); */
-            /*         } */
-            /*     } */
-            /* } */
+            if (line_idx < total_lines - 1) {
+                line_idx++;
+                current_line = find_line_at_index(first_line, line_idx);
+                if (buffer_idx > strlen(current_line->buffer->content)) {
+                    buffer_idx = strlen(current_line->buffer->content);
+                }
+            } else {
+                buffer_idx = strlen(current_line->buffer->content);
+            }
             break;
         case '\n':
             process_character_for_buffer(current_line->buffer, buffer_idx, c, insert);
@@ -225,44 +185,47 @@ int main(int argc, char* argv[]) {
         attroff(A_STANDOUT);
 
         // prepare cursor
-        curs_set(TRUE);
-        left_margin = max_x / 2 - 36;
         cy = 0;
-        cx = left_margin;
         // render lines and their buffers to the screen
-        struct Line* line_to_render = first_line;
-        while (line_to_render != NULL) {
+        if (buffer_idx - view_offset_x > max_x - 7) {
+            view_offset_x += max_x / 2;
+        } else if (buffer_idx < max_x - 7) {
+            view_offset_x = 0;
+        } else if (buffer_idx - view_offset_x < 0) {
+            view_offset_x -= max_x / 2;
+        }
+        while (cy < max_y - 1) {
+            cx = 0;
             move(cy, cx);
-            int i = 0;
-            int wrap_counter = 1;
-            while (i < line_to_render->buffer->allocated &&
-                   '\0' != line_to_render->buffer->content[i] &&
-                   '\n' != line_to_render->buffer->content[i]) {
-                move(cy, cx);
-                addch(line_to_render->buffer->content[i]);
-                cx++;
-                i++;
-                wrap_counter++;
-                if (wrap_counter > renderable_line_length) {
-                    wrap_counter = 1;
-                    cx = left_margin;
-                    cy++;
+
+            if (cy < total_lines) {
+                attron(COLOR_PAIR(2));
+                printw("%3i | ", cy + 1);
+                attron(COLOR_PAIR(1));
+
+                struct Line* line_to_render = find_line_at_index(first_line, cy);
+
+                int i = view_offset_x;
+                while (i < line_to_render->buffer->allocated &&
+                        cx < max_x - 6 &&
+                       '\0' != line_to_render->buffer->content[i] &&
+                       '\n' != line_to_render->buffer->content[i]) {
+                    addch(line_to_render->buffer->content[i]);
+                    cx++;
+                    i++;
                 }
+            } else {
+                attron(COLOR_PAIR(3));
+                printw("~");
+                attron(COLOR_PAIR(1));
             }
-            line_to_render = line_to_render->next;
-            cx = left_margin;
             cy++;
         }
 
         // finalize cursor position
+        curs_set(TRUE);
         cy = line_idx;
-        // this is brute force but it works...
-        line_to_render = first_line;
-        while (NULL != line_to_render) {
-            cy += strlen(line_to_render->buffer->content) / renderable_line_length;
-            line_to_render = line_to_render->next;
-        }
-        cx = left_margin + buffer_idx % renderable_line_length;
+        cx = buffer_idx + 6 - view_offset_x;
         move(cy, cx);
         refresh();
     }
