@@ -304,8 +304,10 @@ int main(int argc, char* argv[]) {
             struct Line* this_line = find_line_at_index(first_line, line_num);
             move(cy, cx);
             attron(A_ITALIC);
+            attron(A_DIM);
             printw("%3i", line_num + 1);
             attroff(A_ITALIC);
+            attroff(A_DIM);
             printw("   ");
             if (strlen(this_line->buffer->content) > renderable_line_length) {
                 cy += strlen(this_line->buffer->content) / renderable_line_length;
@@ -340,6 +342,8 @@ int main(int argc, char* argv[]) {
             cx = left_margin;
             cy += 2;
         }
+        // reset attributes
+        attroff(A_ITALIC);
 
         // finalize cursor position
         cy = line_idx * 2;
