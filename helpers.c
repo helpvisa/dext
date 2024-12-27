@@ -69,7 +69,8 @@ void pilfer_character_from_buffer(Buffer* next_buffer, Buffer* current_buffer) {
     char c = next_buffer->content[0];
     process_character_for_buffer(current_buffer, buffer_index, c, 1);
     delete_character_from_buffer(next_buffer, 0);
-    if (next_buffer->content[0] != '\n' && next_buffer->content[0] != '\0') {
+    /* if (next_buffer->content[0] != '\n' && next_buffer->content[0] != '\0') { */
+    if (next_buffer->content[0] != '\0') {
         pilfer_character_from_buffer(next_buffer, current_buffer);
     }
 }

@@ -93,9 +93,15 @@ int main(int argc, char* argv[]) {
                 buffer_idx--;
                 delete_character_from_buffer(current_line->buffer, buffer_idx);
             } else if (line_idx > 0) {
+                if (buffer_idx == 0 && current_line->buffer->content[buffer_idx] == '\n') {
+                    delete_character_from_buffer(current_line->buffer, buffer_idx);
+                }
                 line_idx--;
                 current_line = find_line_at_index(first_line, line_idx);
-                buffer_idx = strlen(current_line->buffer->content) - 1;
+                buffer_idx = strlen(current_line->buffer->content);
+                if (buffer_idx > 0 && current_line->buffer->content[buffer_idx - 1] == '\n') {
+                    buffer_idx--;
+                }
                 if (line_idx < total_lines - 1) {
                     pilfer_character_from_buffer(current_line->next->buffer, current_line->buffer);
                     if (strlen(current_line->next->buffer->content) < 1) {
@@ -111,7 +117,10 @@ int main(int argc, char* argv[]) {
             } else if (line_idx > 0) {
                 line_idx--;
                 current_line = find_line_at_index(first_line, line_idx);
-                buffer_idx = strlen(current_line->buffer->content) - 1;
+                buffer_idx = strlen(current_line->buffer->content);
+                if (buffer_idx > 0 && current_line->buffer->content[buffer_idx - 1] == '\n') {
+                    buffer_idx--;
+                }
             }
             break;
         case KEY_RIGHT:
@@ -124,65 +133,37 @@ int main(int argc, char* argv[]) {
                 buffer_idx = 0;
             }
             break;
-        // why is this so hard.
         case KEY_UP:
-            /* if (line_idx > 0 && strlen(current_line->buffer->content) <= renderable_line_length) { */
-            /*     line_idx--; */
-            /*     current_line = find_line_at_index(first_line, line_idx); */
-            /*     buffer_idx -= (strlen(current_line->buffer->content) - 1) % renderable_line_length; */
-            /*     buffer_idx = strlen(current_line->buffer->content) - 1 + buffer_idx; */
-            /*     if (buffer_idx > strlen(current_line->buffer->content) - 1) { */
-            /*         buffer_idx = strlen(current_line->buffer->content); */
-            /*     } */
-            /* } else if (strlen(current_line->buffer->content) > renderable_line_length) { */
-            /*     buffer_idx -= renderable_line_length; */
-            /*     if (buffer_idx < 0) { */
-            /*         if (line_idx > 0) { */
-            /*             line_idx--; */
-            /*             current_line = find_line_at_index(first_line, line_idx); */
-            /*             buffer_idx -= (strlen(current_line->buffer->content) - 1) % renderable_line_length; */
-            /*             buffer_idx = strlen(current_line->buffer->content) - 1 + buffer_idx; */
-            /*             if (buffer_idx > strlen(current_line->buffer->content) - 1) { */
-            /*                 buffer_idx = strlen(current_line->buffer->content); */
-            /*             } */
-            /*         } else { */
-            /*             buffer_idx = 0; */
-            /*         } */
-            /*     } */
-            /* } else { */
-            /*     buffer_idx = 0; */
-            /* } */
+            buffer_idx -= renderable_line_length;
+            if (buffer_idx < 0) {
+                if (line_idx > 0) {
+                    line_idx--;
+                    current_line = find_line_at_index(first_line, line_idx);
+                }
+                buffer_idx = renderable_line_length + buffer_idx;
+                if (buffer_idx > strlen(current_line->buffer->content)) {
+                    buffer_idx = strlen(current_line->buffer->content);
+                    if (buffer_idx > 0 && current_line->buffer->content[buffer_idx - 1] == '\n') {
+                        buffer_idx--;
+                    }
+                }
+            }
             break;
         case KEY_DOWN:
-            /* if (strlen(current_line->buffer->content) > renderable_line_length) { */
-            /*     buffer_idx += renderable_line_length; */
-            /*     if (buffer_idx > strlen(current_line->buffer->content) - 1) { */
-            /*         if (line_idx < total_lines - 1) { */
-            /*             buffer_idx -= strlen(current_line->buffer->content) - 1 % renderable_line_length; */
-            /*             line_idx++; */
-            /*             current_line = find_line_at_index(first_line, line_idx); */
-            /*             if (buffer_idx > strlen(current_line->buffer->content) - 1) { */
-            /*                 buffer_idx = strlen(current_line->buffer->content); */
-            /*             } */
-            /*         } else { */
-            /*             buffer_idx = strlen(current_line->buffer->content); */
-            /*         } */
-            /*     } */
-            /* } else { */
-            /*     buffer_idx += (strlen(current_line->buffer->content) - 1) % renderable_line_length; */
-            /*     if (buffer_idx > strlen(current_line->buffer->content) - 1) { */
-            /*         if (line_idx < total_lines - 1) { */
-            /*             buffer_idx -= strlen(current_line->buffer->content) - 1 % renderable_line_length; */
-            /*             line_idx++; */
-            /*             current_line = find_line_at_index(first_line, line_idx); */
-            /*             if (buffer_idx > strlen(current_line->buffer->content) - 1) { */
-            /*                 buffer_idx = strlen(current_line->buffer->content); */
-            /*             } */
-            /*         } else { */
-            /*             buffer_idx = strlen(current_line->buffer->content); */
-            /*         } */
-            /*     } */
-            /* } */
+            buffer_idx += renderable_line_length;
+            if (buffer_idx > strlen(current_line->buffer->content)) {
+                if (line_idx < total_lines - 1) {
+                    line_idx++;
+                    current_line = find_line_at_index(first_line, line_idx);
+                }
+                buffer_idx %= renderable_line_length;
+                if (buffer_idx > strlen(current_line->buffer->content)) {
+                    buffer_idx = strlen(current_line->buffer->content);
+                    if (buffer_idx > 0 && current_line->buffer->content[buffer_idx - 1] == '\n') {
+                        buffer_idx--;
+                    }
+                }
+            }
             break;
         case '\n':
             process_character_for_buffer(current_line->buffer, buffer_idx, c, insert);
@@ -224,9 +205,24 @@ int main(int argc, char* argv[]) {
         }
         attroff(A_STANDOUT);
 
+        // print numbers for non-empty lines
+        left_margin = max_x / 2 - 36;
+        cy = 0;
+        cx = left_margin - 6; // size of number idx
+        for (int line_num = 0; line_num < total_lines; line_num++) {
+            struct Line* this_line = find_line_at_index(first_line, line_num);
+            move(cy, cx);
+            attron(A_ITALIC);
+            printw("%3i", line_num + 1);
+            attroff(A_ITALIC);
+            printw("   ");
+            if (strlen(this_line->buffer->content) > renderable_line_length) {
+                cy += strlen(this_line->buffer->content) / renderable_line_length;
+            }
+            cy += 2;
+        }
         // prepare cursor
         curs_set(TRUE);
-        left_margin = max_x / 2 - 36;
         cy = 0;
         cx = left_margin;
         // render lines and their buffers to the screen
@@ -251,11 +247,11 @@ int main(int argc, char* argv[]) {
             }
             line_to_render = line_to_render->next;
             cx = left_margin;
-            cy++;
+            cy += 2;
         }
 
         // finalize cursor position
-        cy = line_idx;
+        cy = line_idx * 2;
         // this is brute force but it works...
         line_to_render = first_line;
         while (NULL != line_to_render) {
