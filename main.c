@@ -12,6 +12,7 @@ int main(int argc, char* argv[]) {
     // use to paint *immediately* upon first launch
     int is_first_loop = 1;
     // general editor modes
+    int command_mode = 1;
     int insert = 1;
 
     // window and cursor tracking
@@ -62,127 +63,215 @@ int main(int argc, char* argv[]) {
         // query user inputs
         // comments refer to the case below their line
         c = getch();
-        switch (c) {
         // esc
-        case '\e':
-            nodelay(stdscr, TRUE);
-            if (getch() == -1) {
-                curs_set(FALSE);
-                clear();
-                refresh();
-                move(max_y / 2 - 1, max_x / 2 - 7);
-                printw("ISSUE AN ORDER");
-                timeout(-1);
-                char new_order = getch();
-                switch (new_order) {
-                case 'i':
-                    insert = !insert;
-                    break;
-                case '\e':
-                    run_loop = 0;
-                    break;
-                }
-            }
-            nodelay(stdscr, FALSE);
-            break;
-        // nothing
-        case EOF:
-            break;
-        case KEY_BACKSPACE:
-            if (buffer_idx > 0) {
-                buffer_idx--;
-                delete_character_from_buffer(current_line->buffer, buffer_idx);
-            } else if (line_idx > 0) {
-                if (buffer_idx == 0 && current_line->buffer->content[buffer_idx] == '\n') {
-                    delete_character_from_buffer(current_line->buffer, buffer_idx);
-                }
-                line_idx--;
-                current_line = find_line_at_index(first_line, line_idx);
-                buffer_idx = strlen(current_line->buffer->content);
-                if (buffer_idx > 0 && current_line->buffer->content[buffer_idx - 1] == '\n') {
-                    buffer_idx--;
-                }
-                if (line_idx < total_lines - 1) {
-                    pilfer_character_from_buffer(current_line->next->buffer, current_line->buffer);
-                    if (strlen(current_line->next->buffer->content) < 1) {
-                        remove_line(&first_line, current_line->next);
-                        total_lines--;
+        if (command_mode) {
+            switch (c) {
+            case '\e':
+                nodelay(stdscr, TRUE);
+                if (getch() == -1) {
+                    curs_set(FALSE);
+                    clear();
+                    refresh();
+                    move(max_y / 2 - 1, max_x / 2 - 12);
+                    printw("PRESS ESC AGAIN TO QUIT");
+                    move(max_y / 2, max_x / 2 - 12);
+                    printw("OR ANYTHING ELSE TO NOT");
+                    timeout(-1);
+                    char new_order = getch();
+                    switch (new_order) {
+                    case '\e':
+                        run_loop = 0;
+                        break;
+                    default:
+                        break;
                     }
                 }
-            }
-            break;
-        case KEY_LEFT:
-            if (buffer_idx > 0) {
-                buffer_idx--;
-            } else if (line_idx > 0) {
-                line_idx--;
-                current_line = find_line_at_index(first_line, line_idx);
-                buffer_idx = strlen(current_line->buffer->content);
-                if (buffer_idx > 0 && current_line->buffer->content[buffer_idx - 1] == '\n') {
+                nodelay(stdscr, FALSE);
+                break;
+            case 'h':
+            case KEY_BACKSPACE:
+            case KEY_LEFT:
+                if (buffer_idx > 0) {
                     buffer_idx--;
-                }
-            }
-            break;
-        case KEY_RIGHT:
-            if (current_line->buffer->content[buffer_idx] != '\0' &&
-                current_line->buffer->content[buffer_idx] != '\n') {
-                buffer_idx++;
-            } else if (line_idx < total_lines - 1) {
-                line_idx++;
-                current_line = find_line_at_index(first_line, line_idx);
-                buffer_idx = 0;
-            }
-            break;
-        case KEY_UP:
-            buffer_idx -= renderable_line_length;
-            if (buffer_idx < 0) {
-                if (line_idx > 0) {
+                } else if (line_idx > 0) {
                     line_idx--;
                     current_line = find_line_at_index(first_line, line_idx);
-                }
-                buffer_idx = renderable_line_length + buffer_idx;
-                if (buffer_idx > strlen(current_line->buffer->content)) {
                     buffer_idx = strlen(current_line->buffer->content);
                     if (buffer_idx > 0 && current_line->buffer->content[buffer_idx - 1] == '\n') {
                         buffer_idx--;
                     }
                 }
-            }
-            break;
-        case KEY_DOWN:
-            buffer_idx += renderable_line_length;
-            if (buffer_idx > strlen(current_line->buffer->content)) {
-                if (line_idx < total_lines - 1) {
+                break;
+            case 'l':
+            case KEY_RIGHT:
+                if (current_line->buffer->content[buffer_idx] != '\0' &&
+                    current_line->buffer->content[buffer_idx] != '\n') {
+                    buffer_idx++;
+                } else if (line_idx < total_lines - 1) {
                     line_idx++;
                     current_line = find_line_at_index(first_line, line_idx);
+                    buffer_idx = 0;
                 }
-                buffer_idx %= renderable_line_length;
+                break;
+            case 'k':
+            case KEY_UP:
+                buffer_idx -= renderable_line_length;
+                if (buffer_idx < 0) {
+                    if (line_idx > 0) {
+                        line_idx--;
+                        current_line = find_line_at_index(first_line, line_idx);
+                    }
+                    buffer_idx = renderable_line_length + buffer_idx;
+                    if (buffer_idx > strlen(current_line->buffer->content)) {
+                        buffer_idx = strlen(current_line->buffer->content);
+                        if (buffer_idx > 0 && current_line->buffer->content[buffer_idx - 1] == '\n') {
+                            buffer_idx--;
+                        }
+                    }
+                }
+                break;
+            case 'j':
+            case KEY_DOWN:
+                buffer_idx += renderable_line_length;
                 if (buffer_idx > strlen(current_line->buffer->content)) {
+                    if (line_idx < total_lines - 1) {
+                        line_idx++;
+                        current_line = find_line_at_index(first_line, line_idx);
+                    }
+                    buffer_idx %= renderable_line_length;
+                    if (buffer_idx > strlen(current_line->buffer->content)) {
+                        buffer_idx = strlen(current_line->buffer->content);
+                        if (buffer_idx > 0 && current_line->buffer->content[buffer_idx - 1] == '\n') {
+                            buffer_idx--;
+                        }
+                    }
+                }
+                break;
+            case 'i':
+                insert = 1;
+                command_mode = 0;
+                break;
+            case 'a':
+                insert = 1;
+                command_mode = 0;
+                if (buffer_idx < strlen(current_line->buffer->content)
+                    && current_line->buffer->content[buffer_idx] != '\0') {
+                        buffer_idx++;
+                }
+                break;
+            case 'R':
+                insert = 0;
+                command_mode = 0;
+                break;
+            default:
+                break;
+            }
+        } else {
+            switch (c) {
+            case '\e':
+                /* nodelay(stdscr, TRUE); */
+                command_mode = 1;
+                /* nodelay(stdscr, FALSE); */
+                break;
+            // nothing
+            case EOF:
+                break;
+            case KEY_BACKSPACE:
+                if (buffer_idx > 0) {
+                    buffer_idx--;
+                    delete_character_from_buffer(current_line->buffer, buffer_idx);
+                } else if (line_idx > 0) {
+                    if (buffer_idx == 0 && current_line->buffer->content[buffer_idx] == '\n') {
+                        delete_character_from_buffer(current_line->buffer, buffer_idx);
+                    }
+                    line_idx--;
+                    current_line = find_line_at_index(first_line, line_idx);
+                    buffer_idx = strlen(current_line->buffer->content);
+                    if (buffer_idx > 0 && current_line->buffer->content[buffer_idx - 1] == '\n') {
+                        buffer_idx--;
+                    }
+                    if (line_idx < total_lines - 1) {
+                        pilfer_character_from_buffer(current_line->next->buffer, current_line->buffer);
+                        if (strlen(current_line->next->buffer->content) < 1) {
+                            remove_line(&first_line, current_line->next);
+                            total_lines--;
+                        }
+                    }
+                }
+                break;
+            case KEY_LEFT:
+                if (buffer_idx > 0) {
+                    buffer_idx--;
+                } else if (line_idx > 0) {
+                    line_idx--;
+                    current_line = find_line_at_index(first_line, line_idx);
                     buffer_idx = strlen(current_line->buffer->content);
                     if (buffer_idx > 0 && current_line->buffer->content[buffer_idx - 1] == '\n') {
                         buffer_idx--;
                     }
                 }
+                break;
+            case KEY_RIGHT:
+                if (current_line->buffer->content[buffer_idx] != '\0' &&
+                    current_line->buffer->content[buffer_idx] != '\n') {
+                    buffer_idx++;
+                } else if (line_idx < total_lines - 1) {
+                    line_idx++;
+                    current_line = find_line_at_index(first_line, line_idx);
+                    buffer_idx = 0;
+                }
+                break;
+            case KEY_UP:
+                buffer_idx -= renderable_line_length;
+                if (buffer_idx < 0) {
+                    if (line_idx > 0) {
+                        line_idx--;
+                        current_line = find_line_at_index(first_line, line_idx);
+                    }
+                    buffer_idx = renderable_line_length + buffer_idx;
+                    if (buffer_idx > strlen(current_line->buffer->content)) {
+                        buffer_idx = strlen(current_line->buffer->content);
+                        if (buffer_idx > 0 && current_line->buffer->content[buffer_idx - 1] == '\n') {
+                            buffer_idx--;
+                        }
+                    }
+                }
+                break;
+            case KEY_DOWN:
+                buffer_idx += renderable_line_length;
+                if (buffer_idx > strlen(current_line->buffer->content)) {
+                    if (line_idx < total_lines - 1) {
+                        line_idx++;
+                        current_line = find_line_at_index(first_line, line_idx);
+                    }
+                    buffer_idx %= renderable_line_length;
+                    if (buffer_idx > strlen(current_line->buffer->content)) {
+                        buffer_idx = strlen(current_line->buffer->content);
+                        if (buffer_idx > 0 && current_line->buffer->content[buffer_idx - 1] == '\n') {
+                            buffer_idx--;
+                        }
+                    }
+                }
+                break;
+            case '\n':
+                process_character_for_buffer(current_line->buffer, buffer_idx, c, insert);
+                line_idx++;
+                buffer_idx++;
+                total_lines++;
+                Buffer* new_buffer = NULL;
+                if (init_buffer(&new_buffer) < 0) {
+                    exit(1);
+                }
+                insert_line(&current_line, new_buffer);
+                push_to_next_buffer(current_line->next->buffer, current_line->buffer, buffer_idx);
+                current_line = find_line_at_index(first_line, line_idx);
+                buffer_idx = 0;
+                break;
+            default:
+                process_character_for_buffer(current_line->buffer, buffer_idx, c, insert);
+                buffer_idx++;
+                break;
             }
-            break;
-        case '\n':
-            process_character_for_buffer(current_line->buffer, buffer_idx, c, insert);
-            line_idx++;
-            buffer_idx++;
-            total_lines++;
-            Buffer* new_buffer = NULL;
-            if (init_buffer(&new_buffer) < 0) {
-                exit(1);
-            }
-            insert_line(&current_line, new_buffer);
-            push_to_next_buffer(current_line->next->buffer, current_line->buffer, buffer_idx);
-            current_line = find_line_at_index(first_line, line_idx);
-            buffer_idx = 0;
-            break;
-        default:
-            process_character_for_buffer(current_line->buffer, buffer_idx, c, insert);
-            buffer_idx++;
-            break;
         }
 
         // rendering phase begins
@@ -191,7 +280,9 @@ int main(int argc, char* argv[]) {
         // statusline
         attron(A_STANDOUT);
         move(max_y - 1, 0);
-        if (insert) {
+        if (command_mode) {
+            printw("NORMAL");
+        } else if (insert) {
             printw("INSERTING");
         } else {
             printw("REPLACING");
