@@ -32,6 +32,9 @@ int main(int argc, char* argv[]) {
     }
     first_line->next = NULL;
     struct Line* current_line = first_line;
+    // allocate a buffer which will be used only for rendering
+    Buffer* render_buffer = NULL;
+    init_buffer(&render_buffer);
 
     // setup ncurses
     initscr();
@@ -113,6 +116,9 @@ int main(int argc, char* argv[]) {
                     buffer_idx = 0;
                 }
                 break;
+            // now that line-wrapping works, maybe we can reverse-engineer
+            // the cx and cy position to determine appropriate
+            // buffer and line indices
             case 'k':
             case KEY_UP:
                 buffer_idx -= renderable_line_length;
@@ -317,43 +323,80 @@ int main(int argc, char* argv[]) {
         // prepare cursor
         curs_set(TRUE);
         cy = 0;
-        cx = left_margin;
         // render lines and their buffers to the screen
+        // TODO: fix lines reappearing if multiple spaces are input in a row
         struct Line* line_to_render = first_line;
         while (line_to_render != NULL) {
+            cx = left_margin;
             move(cy, cx);
+            char* content = line_to_render->buffer->content;
             int i = 0;
-            int wrap_counter = 1;
             while (i < line_to_render->buffer->allocated &&
-                   '\0' != line_to_render->buffer->content[i] &&
-                   '\n' != line_to_render->buffer->content[i]) {
-                move(cy, cx);
-                addch(line_to_render->buffer->content[i]);
-                cx++;
-                i++;
-                wrap_counter++;
-                if (wrap_counter > renderable_line_length) {
-                    wrap_counter = 1;
+                   '\0' != content[i] &&
+                   '\n' != content[i]) {
+                // find the word to print
+                int render_idx = 0;
+                while (i < line_to_render->buffer->allocated &&
+                       ' ' != content[i] &&
+                       '\n' != content[i] &&
+                       '\0' != content[i]) {
+                    process_character_for_buffer(render_buffer,
+                                                 render_idx,
+                                                 content[i],
+                                                 0);
+                    // do it again for nullchar to prevent overprint
+                    process_character_for_buffer(render_buffer,
+                                                 render_idx + 1,
+                                                 '\0',
+                                                 0);
+                    render_idx++;
+                    i++;
+                    cx++;
+                }
+                if (cx - left_margin > renderable_line_length) {
                     cx = left_margin;
                     cy++;
+                    move(cy, cx);
                 }
+                printw("%s ", render_buffer->content);
+                // added a space to template so we increment cx
+                i++;
+                cx++;
             }
             line_to_render = line_to_render->next;
-            cx = left_margin;
             cy += 2;
         }
         // reset attributes
         attroff(A_ITALIC);
 
         // finalize cursor position
-        cy = line_idx * 2;
+        cy = 0;
         // this is brute force but it works...
+        // TODO: fix this garbagio
         line_to_render = first_line;
         while (NULL != line_to_render) {
-            cy += strlen(line_to_render->buffer->content) / renderable_line_length;
+            cx = left_margin;
+            move(cy, cx);
+            char* content = line_to_render->buffer->content;
+            int idx = 0;
+            while (idx < buffer_idx) {
+                while (idx < buffer_idx &&
+                       ' ' != content[idx]) {
+                    idx++;
+                    cx++;
+                }
+                if (cx - left_margin > renderable_line_length) {
+                    cx = left_margin;
+                    cy++;
+                    move(cy, cx);
+                }
+                if (content[idx] == ' ') {
+                    cx++;
+                }
+                idx++;
+            }
             line_to_render = line_to_render->next;
         }
-        cx = left_margin + buffer_idx % renderable_line_length;
         move(cy, cx);
         refresh();
     }
