@@ -302,31 +302,26 @@ int main(int argc, char* argv[]) {
         }
         attroff(A_STANDOUT);
 
-        // print numbers for non-empty lines
-        left_margin = max_x / 2 - 36;
-        cy = 0;
-        cx = left_margin - 6; // size of number idx
-        for (int line_num = 0; line_num < total_lines; line_num++) {
-            struct Line* this_line = find_line_at_index(first_line, line_num);
-            move(cy, cx);
-            attron(A_ITALIC);
-            attron(A_DIM);
-            printw("%3i", line_num + 1);
-            attroff(A_ITALIC);
-            attroff(A_DIM);
-            printw("   ");
-            if (strlen(this_line->buffer->content) > renderable_line_length) {
-                cy += strlen(this_line->buffer->content) / renderable_line_length;
-            }
-            cy += 2;
-        }
         // prepare cursor
+        left_margin = max_x / 2 - 36;
         curs_set(TRUE);
         cy = 0;
         // render lines and their buffers to the screen
-        // TODO: fix lines reappearing if multiple spaces are input in a row
         struct Line* line_to_render = first_line;
+        int idx_of_line_to_render = 0;
         while (line_to_render != NULL) {
+            // print numbers for non-empty lines
+            // we increment idx first, so we don't start at 0
+            idx_of_line_to_render++;
+            cx = left_margin - 6; // size of number idx
+            move(cy, cx);
+            attron(A_ITALIC);
+            attron(A_DIM);
+            printw("%3i", idx_of_line_to_render);
+            attroff(A_ITALIC);
+            attroff(A_DIM);
+            printw("   ");
+            // print actual content
             cx = left_margin;
             move(cy, cx);
             char* content = line_to_render->buffer->content;
@@ -336,32 +331,58 @@ int main(int argc, char* argv[]) {
                    '\n' != content[i]) {
                 // find the word to print
                 int render_idx = 0;
+                // clear out our render buffer
+                init_buffer(&render_buffer);
                 while (i < line_to_render->buffer->allocated &&
                        ' ' != content[i] &&
+                       '-' != content[i] &&
                        '\n' != content[i] &&
                        '\0' != content[i]) {
-                    process_character_for_buffer(render_buffer,
-                                                 render_idx,
-                                                 content[i],
-                                                 0);
-                    // do it again for nullchar to prevent overprint
-                    process_character_for_buffer(render_buffer,
-                                                 render_idx + 1,
-                                                 '\0',
-                                                 0);
+                    process_character_for_buffer_with_nullchar(
+                        render_buffer,
+                        render_idx,
+                        content[i],
+                        0
+                    );
                     render_idx++;
                     i++;
                     cx++;
+                    // TODO: fix (it gets overwritten atm)
+                    // this code sometimes generates another - on the newline... why?
+                    if (render_idx > 10 && cx - left_margin > renderable_line_length - 1) {
+                        process_character_for_buffer_with_nullchar(
+                            render_buffer,
+                            render_idx,
+                            '-',
+                            0
+                        );
+                        break;
+                    }
                 }
                 if (cx - left_margin > renderable_line_length) {
                     cx = left_margin;
                     cy++;
                     move(cy, cx);
                 }
-                printw("%s ", render_buffer->content);
-                // added a space to template so we increment cx
+                // this adds a space, hyphen, or other 'ignored' char
+                int added_extra_char = 0;
+                if (content[i] != '\n' && content[i] != '\0') {
+                    process_character_for_buffer_with_nullchar(
+                        render_buffer,
+                        render_idx,
+                        content[i],
+                        0
+                    );
+                    added_extra_char++;
+                }
+                printw("%s", render_buffer->content);
+                // we need to getyx so we can store current cx after print
+                getyx(stdscr, cy, cx);
                 i++;
-                cx++;
+                // we added the ignored char above, so we still increment cx
+                if (added_extra_char) {
+                    cx++;
+                }
             }
             line_to_render = line_to_render->next;
             cy += 2;
@@ -370,9 +391,14 @@ int main(int argc, char* argv[]) {
         attroff(A_ITALIC);
 
         // finalize cursor position
-        cy = 0;
+        cy = line_idx * 2;
+        int line_counter = 0;
+        while (line_counter < line_idx) {
+            Buffer* count_buffer = find_line_at_index(first_line, line_counter)->buffer;
+            cy += strlen(count_buffer->content) / renderable_line_length;
+            line_counter++;
+        }
         // this is brute force but it works...
-        // TODO: fix this garbagio
         line_to_render = first_line;
         while (NULL != line_to_render) {
             cx = left_margin;
@@ -380,17 +406,25 @@ int main(int argc, char* argv[]) {
             char* content = line_to_render->buffer->content;
             int idx = 0;
             while (idx < buffer_idx) {
+                int curr_word_length = 0;
                 while (idx < buffer_idx &&
-                       ' ' != content[idx]) {
+                       ' ' != content[idx] &&
+                       '-' != content[idx] &&
+                       '\n' != content[idx] && 
+                       '\0' != content[idx]) {
+                    curr_word_length++;
                     idx++;
                     cx++;
+                    if (curr_word_length > 10 && cx - left_margin > renderable_line_length - 2) {
+                        break;
+                    }
                 }
-                if (cx - left_margin > renderable_line_length) {
-                    cx = left_margin;
+                if (cx - left_margin > renderable_line_length - 1) {
+                    cx = left_margin + curr_word_length;
                     cy++;
                     move(cy, cx);
                 }
-                if (content[idx] == ' ') {
+                if (content[idx] == ' ' || content[idx] == '-') {
                     cx++;
                 }
                 idx++;
@@ -403,6 +437,13 @@ int main(int argc, char* argv[]) {
 
     // clean up ncurses
     endwin();
+
+    // print the results of our buffers for testing + fun
+    current_line = first_line;
+    while (NULL != current_line) {
+        printf("%s\n", current_line->buffer->content);
+        current_line = current_line->next;
+    }
 
     // free up allocations
     current_line = first_line;

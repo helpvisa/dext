@@ -52,6 +52,19 @@ void process_character_for_buffer(Buffer* buffer, int buffer_index, char charact
     }
 }
 
+void process_character_for_buffer_with_nullchar(Buffer* buffer, int buffer_index, char character, int insert_mode) {
+    if (insert_mode) {
+        insert_into_buffer(buffer, buffer_index, character);
+        insert_into_buffer(buffer, buffer_index + 1, '\0');
+    } else {
+        replace_in_buffer(buffer, buffer_index, character);
+    }
+}
+
+void process_nullchar_for_buffer(Buffer* buffer, int buffer_index) {
+    replace_in_buffer(buffer, buffer_index, '\0');
+}
+
 void delete_character_from_buffer(Buffer* buffer, int buffer_index) {
     // just make sure we don't access anything oob
     if (buffer_index < 0) {
