@@ -395,41 +395,37 @@ int main(int argc, char* argv[]) {
         int line_counter = 0;
         while (line_counter < line_idx) {
             Buffer* count_buffer = find_line_at_index(first_line, line_counter)->buffer;
-            cy += strlen(count_buffer->content) / renderable_line_length;
+            cy += (strlen(count_buffer->content) - 1) / renderable_line_length;
             line_counter++;
         }
         // this is brute force but it works...
-        line_to_render = first_line;
-        while (NULL != line_to_render) {
-            cx = left_margin;
-            move(cy, cx);
-            char* content = line_to_render->buffer->content;
-            int idx = 0;
-            while (idx < buffer_idx) {
-                int curr_word_length = 0;
-                while (idx < buffer_idx &&
-                       ' ' != content[idx] &&
-                       '-' != content[idx] &&
-                       '\n' != content[idx] && 
-                       '\0' != content[idx]) {
-                    curr_word_length++;
-                    idx++;
-                    cx++;
-                    if (curr_word_length > 10 && cx - left_margin > renderable_line_length - 2) {
-                        break;
-                    }
-                }
-                if (cx - left_margin > renderable_line_length - 1) {
-                    cx = left_margin + curr_word_length;
-                    cy++;
-                    move(cy, cx);
-                }
-                if (content[idx] == ' ' || content[idx] == '-') {
-                    cx++;
-                }
+        cx = left_margin;
+        move(cy, cx);
+        char* content = current_line->buffer->content;
+        int idx = 0;
+        while (idx < buffer_idx) {
+            int curr_word_length = 0;
+            while (idx < buffer_idx &&
+                   ' ' != content[idx] &&
+                   '-' != content[idx] &&
+                   '\n' != content[idx] && 
+                   '\0' != content[idx]) {
+                curr_word_length++;
                 idx++;
+                cx++;
+                if (curr_word_length > 10 && cx - left_margin > renderable_line_length - 2) {
+                    break;
+                }
             }
-            line_to_render = line_to_render->next;
+            if (cx - left_margin > renderable_line_length - 1) {
+                cx = left_margin + curr_word_length;
+                cy++;
+                move(cy, cx);
+            }
+            if (content[idx] == ' ' || content[idx] == '-') {
+                cx++;
+            }
+            idx++;
         }
         move(cy, cx);
         refresh();
