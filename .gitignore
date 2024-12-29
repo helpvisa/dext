@@ -11,3 +11,6 @@ dewc
 # testing
 *.test
 *.log
+
+# misc
+.ccls*
