@@ -1,7 +1,6 @@
 #ifndef BUFFERS_H_
 #define BUFFERS_H_
 
-#include <stdint.h>
 #include "structs.h"
 
 extern const int alloc_step;
