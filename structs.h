@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-// structures for buffer and line editing
+/* structures for buffer and line editing */
 typedef struct {
     char* content;
     uint64_t allocated;

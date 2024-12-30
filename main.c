@@ -9,19 +9,19 @@
 static const int renderable_line_length = 72;
 
 int main(int argc, char* argv[]) {
-    // use to paint *immediately* upon first launch
+    /* use to paint *immediately* upon first launch */
     int is_first_loop = 1;
-    // general editor modes
+    /* general editor modes */
     int command_mode = 1;
     int insert = 1;
 
-    // window and cursor tracking
+    /* window and cursor tracking */
     int max_x = 0, max_y = 0;
     int left_margin = 0;
     int cx = 0, cy = 0;
     int c = '\0';
 
-    // set up lines and their buffers
+    /* set up lines and their buffers */
     int total_lines = 1;
     int line_idx = 0;
     int buffer_idx = 0;
@@ -32,18 +32,18 @@ int main(int argc, char* argv[]) {
     }
     first_line->next = NULL;
     struct Line* current_line = first_line;
-    // allocate a buffer which will be used only for rendering
+    /* allocate a buffer which will be used only for rendering */
     Buffer* render_buffer = NULL;
     init_buffer(&render_buffer);
 
-    // setup curses
+    /* setup curses */
     initscr();
     cbreak();
     noecho();
     keypad(stdscr, TRUE);
     set_escdelay(10);
 
-    // input loop
+    /* input loop */
     int run_loop = 1;
     while(run_loop) {
         if (is_first_loop) {
@@ -54,35 +54,35 @@ int main(int argc, char* argv[]) {
         }
         getmaxyx(stdscr, max_y, max_x);
 
-        if (max_y < 8 || max_x < renderable_line_length) {
+        if (max_y < 8 || max_x < renderable_line_length + 8) {
             curs_set(FALSE);
             erase();
             move(0,0);
-            printw("Please resize to at least:\n8 rows\n%i columns", renderable_line_length);
+            printw("Please resize to at least:\n8 rows\n%i columns", renderable_line_length + 8);
             refresh();
             continue;
         }
 
-        // query user inputs
-        // comments refer to the case below their line
+        /* query user inputs */
+        /* comments refer to the case below their line */
         c = getch();
-        // esc
+        /* esc */
         if (command_mode) {
             switch (c) {
-            case '\e':
+            case 'q':
                 nodelay(stdscr, TRUE);
                 if (getch() == -1) {
                     curs_set(FALSE);
                     clear();
                     refresh();
                     move(max_y / 2 - 1, max_x / 2 - 12);
-                    printw("PRESS ESC AGAIN TO QUIT");
+                    printw("PRESS 'Q' KEY AGAIN TO QUIT");
                     move(max_y / 2, max_x / 2 - 12);
-                    printw("OR ANYTHING ELSE TO NOT");
+                    printw("PRESS ANY OTHER KEY TO STAY");
                     timeout(-1);
                     char new_order = getch();
                     switch (new_order) {
-                    case '\e':
+                    case 'q':
                         run_loop = 0;
                         break;
                     default:
@@ -116,9 +116,9 @@ int main(int argc, char* argv[]) {
                     buffer_idx = 0;
                 }
                 break;
-            // now that line-wrapping works, maybe we can reverse-engineer
-            // the cx and cy position to determine appropriate
-            // buffer and line indices
+            /* now that line-wrapping works, maybe we can reverse-engineer */
+            /* the cx and cy position to determine appropriate */
+            /* buffer and line indices */
             case 'k':
             case KEY_UP:
                 buffer_idx -= renderable_line_length;
@@ -174,12 +174,11 @@ int main(int argc, char* argv[]) {
             }
         } else {
             switch (c) {
-            case '\e':
-                /* nodelay(stdscr, TRUE); */
+            /* 27 is ASCII code for escape key */
+            case 27:
                 command_mode = 1;
-                /* nodelay(stdscr, FALSE); */
                 break;
-            // nothing
+            /* nothing */
             case EOF:
                 break;
             case KEY_BACKSPACE:
@@ -280,10 +279,10 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        // rendering phase begins
+        /* rendering phase begins */
         erase();
 
-        // statusline
+        /* statusline */
         attron(A_STANDOUT);
         move(max_y - 1, 0);
         if (command_mode) {
@@ -297,23 +296,24 @@ int main(int argc, char* argv[]) {
         printw(" | total lines: %i", total_lines);
         printw(" | buffer_idx: %i", buffer_idx);
         printw(" | current buffer size: %llu", current_line->buffer->allocated);
-        for (int i = 0; i < max_x; i++) {
+        int i;
+        for (i = 0; i < max_x; i++) {
             addch(' ');
         }
         attroff(A_STANDOUT);
 
-        // prepare cursor
+        /* prepare cursor */
         left_margin = max_x / 2 - 36;
         curs_set(TRUE);
         cy = 0;
-        // render lines and their buffers to the screen
+        /* render lines and their buffers to the screen */
         struct Line* line_to_render = first_line;
         int idx_of_line_to_render = 0;
         while (line_to_render != NULL) {
-            // print numbers for non-empty lines
-            // we increment idx first, so we don't start at 0
+            /* print numbers for non-empty lines */
+            /* we increment idx first, so we don't start at 0 */
             idx_of_line_to_render++;
-            cx = left_margin - 6; // size of number idx
+            cx = left_margin - 6; /* size of number idx */
             move(cy, cx);
             attron(A_ITALIC);
             attron(A_DIM);
@@ -321,7 +321,7 @@ int main(int argc, char* argv[]) {
             attroff(A_ITALIC);
             attroff(A_DIM);
             printw("   ");
-            // print actual content
+            /* print actual content */
             cx = left_margin;
             move(cy, cx);
             char* content = line_to_render->buffer->content;
@@ -329,9 +329,9 @@ int main(int argc, char* argv[]) {
             while (i < line_to_render->buffer->allocated &&
                    '\0' != content[i] &&
                    '\n' != content[i]) {
-                // find the word to print
+                /* find the word to print */
                 int render_idx = 0;
-                // clear out our render buffer
+                /* clear out our render buffer */
                 init_buffer(&render_buffer);
                 while (i < line_to_render->buffer->allocated &&
                        ' ' != content[i] &&
@@ -347,8 +347,8 @@ int main(int argc, char* argv[]) {
                     render_idx++;
                     i++;
                     cx++;
-                    // TODO: fix (it gets overwritten atm)
-                    // this code sometimes generates another - on the newline... why?
+                    /* TODO: fix (it gets overwritten atm) */
+                    /* this code sometimes generates another - on the newline... why? */
                     if (render_idx > 10 && cx - left_margin > renderable_line_length - 1) {
                         process_character_for_buffer_with_nullchar(
                             render_buffer,
@@ -364,7 +364,7 @@ int main(int argc, char* argv[]) {
                     cy++;
                     move(cy, cx);
                 }
-                // this adds a space, hyphen, or other 'ignored' char
+                /* this adds a space, hyphen, or other 'ignored' char */
                 int added_extra_char = 0;
                 if (content[i] != '\n' && content[i] != '\0') {
                     process_character_for_buffer_with_nullchar(
@@ -376,10 +376,10 @@ int main(int argc, char* argv[]) {
                     added_extra_char++;
                 }
                 printw("%s", render_buffer->content);
-                // we need to getyx so we can store current cx after print
+                /* we need to getyx so we can store current cx after print */
                 getyx(stdscr, cy, cx);
                 i++;
-                // we added the ignored char above, so we still increment cx
+                /* we added the ignored char above, so we still increment cx */
                 if (added_extra_char) {
                     cx++;
                 }
@@ -387,10 +387,10 @@ int main(int argc, char* argv[]) {
             line_to_render = line_to_render->next;
             cy += 2;
         }
-        // reset attributes
+        /* reset attributes */
         attroff(A_ITALIC);
 
-        // finalize cursor position
+        /* finalize cursor position */
         cy = line_idx * 2;
         int line_counter = 0;
         while (line_counter < line_idx) {
@@ -398,7 +398,7 @@ int main(int argc, char* argv[]) {
             cy += (strlen(count_buffer->content) - 1) / renderable_line_length;
             line_counter++;
         }
-        // this is brute force but it works...
+        /* this is brute force but it works... */
         cx = left_margin;
         move(cy, cx);
         char* content = current_line->buffer->content;
@@ -431,17 +431,17 @@ int main(int argc, char* argv[]) {
         refresh();
     }
 
-    // clean up curses
+    /* clean up curses */
     endwin();
 
-    // print the results of our buffers for testing + fun
+    /* print the results of our buffers for testing + fun */
     current_line = first_line;
     while (NULL != current_line) {
         printf("%s\n", current_line->buffer->content);
         current_line = current_line->next;
     }
 
-    // free up allocations
+    /* free up allocations */
     current_line = first_line;
     while (NULL != current_line) {
         struct Line* line_to_remove = current_line;

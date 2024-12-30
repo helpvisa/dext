@@ -4,25 +4,25 @@
 #include "string.h"
 
 void insert_into_buffer(Buffer* buffer, int idx, char c) {
-    // first, check if a reallocation is needed outright
+    /* first, check if a reallocation is needed outright */
     if (idx >= buffer->allocated - 1) {
         expand_buffer(&buffer);
     }
-    // walk forward thru buffer to make room for insertion
+    /* walk forward thru buffer to make room for insertion */
     int reverse_idx = idx;
     while (reverse_idx < buffer->allocated && buffer->content[reverse_idx] != '\0') {
         reverse_idx++;
     }
-    // it is possible we need to reallocate if we are inserting b/w chars
+    /* it is possible we need to reallocate if we are inserting b/w chars */
     if (reverse_idx >= buffer->allocated - 1) {
         expand_buffer(&buffer);
     }
-    // move chars forward to make room b/w
+    /* move chars forward to make room b/w */
     while (reverse_idx >= idx) {
         buffer->content[reverse_idx + 1] = buffer->content[reverse_idx];
         reverse_idx--;
     }
-    // finally, we add the char
+    /* finally, we add the char */
     buffer->content[idx] = c;
 }
 
@@ -33,7 +33,7 @@ void replace_in_buffer(Buffer* buffer, int idx, char c) {
     buffer->content[idx] = c;
 }
 
-// if index is too large, will return last available non-null Line
+/* if index is too large, will return last available non-null Line */
 struct Line* find_line_at_index(struct Line *head, int idx) {
     int current_line_index = 0;
     struct Line* current_line = head;
@@ -66,7 +66,7 @@ void process_nullchar_for_buffer(Buffer* buffer, int buffer_index) {
 }
 
 void delete_character_from_buffer(Buffer* buffer, int buffer_index) {
-    // just make sure we don't access anything oob
+    /* just make sure we don't access anything oob */
     if (buffer_index < 0) {
         return;
     }

@@ -18,7 +18,7 @@ void free_buffer(Buffer **buffer) {
 uint64_t init_buffer(Buffer **buffer) {
     uint64_t to_allocate = alloc_step * sizeof(char);
 
-    // re-initialize if buffer is not empty
+    /* re-initialize if buffer is not empty */
     if (*buffer) {
         free_buffer(buffer);
     }
@@ -29,7 +29,7 @@ uint64_t init_buffer(Buffer **buffer) {
     }
     (*buffer)->content = malloc(to_allocate);
     if (NULL == (*buffer)->content) {
-        // we did not successfully allocate memory
+        /* we did not successfully allocate memory */
         (*buffer)->allocated = 0;
         return -1;
     }
@@ -48,7 +48,7 @@ uint64_t expand_buffer(Buffer **buffer) {
         return -1;
     }
     (*buffer)->content = temp_allocation;
-    // zero our newly allocated memory chunk
+    /* zero our newly allocated memory chunk */
     /* memset((*buffer)->content + (*buffer)->allocated, 0, alloc_step); */
     memset((*buffer)->content + (*buffer)->allocated, 0, (*buffer)->allocated);
     (*buffer)->allocated = new_size;
