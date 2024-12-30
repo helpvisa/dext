@@ -1,7 +1,7 @@
 .POSIX:
 .SUFFIXES:
 CC = cc
-LDLIBS = -lncurses
+LDLIBS = -lcurses
 LDFLAGS =
 CFLAGS =
 PREFIX = /usr/local

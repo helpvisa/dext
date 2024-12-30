@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ncurses.h>
+#include <curses.h>
 #include "structs.h"
 #include "buffers.h"
 #include "helpers.h"
@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
     Buffer* render_buffer = NULL;
     init_buffer(&render_buffer);
 
-    // setup ncurses
+    // setup curses
     initscr();
     cbreak();
     noecho();
@@ -431,7 +431,7 @@ int main(int argc, char* argv[]) {
         refresh();
     }
 
-    // clean up ncurses
+    // clean up curses
     endwin();
 
     // print the results of our buffers for testing + fun
