@@ -296,7 +296,7 @@ int main(int argc, char* argv[]) {
         printw(" | line_idx: %i", line_idx);
         printw(" | total lines: %i", total_lines);
         printw(" | buffer_idx: %i", buffer_idx);
-        printw(" | current buffer size: %lu", current_line->buffer->allocated);
+        printw(" | current buffer size: %llu", current_line->buffer->allocated);
         for (int i = 0; i < max_x; i++) {
             addch(' ');
         }
