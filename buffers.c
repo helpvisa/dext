@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 #include "structs.h"
 
@@ -15,8 +14,8 @@ void free_buffer(Buffer **buffer) {
     }
 }
 
-uint64_t init_buffer(Buffer **buffer) {
-    uint64_t to_allocate = alloc_step * sizeof(char);
+unsigned int init_buffer(Buffer **buffer) {
+    unsigned int to_allocate = alloc_step * sizeof(char);
 
     /* re-initialize if buffer is not empty */
     if (*buffer) {
@@ -39,9 +38,8 @@ uint64_t init_buffer(Buffer **buffer) {
     return to_allocate;
 }
 
-uint64_t expand_buffer(Buffer **buffer) {
-    /* uint64_t new_size = (*buffer)->allocated + alloc_step; */
-    uint64_t new_size = (*buffer)->allocated * 2;
+unsigned int expand_buffer(Buffer **buffer) {
+    unsigned int new_size = (*buffer)->allocated * 2;
 
     char* temp_allocation = realloc((*buffer)->content, new_size);
     if (NULL == temp_allocation) {
@@ -49,7 +47,6 @@ uint64_t expand_buffer(Buffer **buffer) {
     }
     (*buffer)->content = temp_allocation;
     /* zero our newly allocated memory chunk */
-    /* memset((*buffer)->content + (*buffer)->allocated, 0, alloc_step); */
     memset((*buffer)->content + (*buffer)->allocated, 0, (*buffer)->allocated);
     (*buffer)->allocated = new_size;
 
@@ -64,7 +61,9 @@ void add_line_to_beginning(struct Line **head, Buffer *buffer) {
 }
 
 void add_line_to_end(struct Line **head, Buffer *buffer) {
+    struct Line *current_line = *head;
     struct Line *new_line = malloc(sizeof(*new_line));
+
     new_line->buffer = buffer;
     new_line->next = NULL;
 
@@ -73,7 +72,6 @@ void add_line_to_end(struct Line **head, Buffer *buffer) {
         return;
     }
 
-    struct Line *current_line = *head;
     while (NULL != current_line->next) {
         current_line = current_line->next;
     }
@@ -83,6 +81,17 @@ void add_line_to_end(struct Line **head, Buffer *buffer) {
 void insert_line(struct Line **ref, Buffer *buffer) {
     struct Line *new_line = malloc(sizeof(*new_line));
     new_line->buffer = buffer;
+    new_line->next = (*ref)->next;
+    (*ref)->next = new_line;
+}
+
+void create_and_insert_line(struct Line **ref) {
+    Buffer* new_buffer = NULL;
+    struct Line *new_line = malloc(sizeof(*new_line));
+
+    init_buffer(&new_buffer);
+
+    new_line->buffer = new_buffer;
     new_line->next = (*ref)->next;
     (*ref)->next = new_line;
 }

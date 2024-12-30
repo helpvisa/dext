@@ -4,12 +4,13 @@
 #include "string.h"
 
 void insert_into_buffer(Buffer* buffer, int idx, char c) {
+    int reverse_idx = idx;
+
     /* first, check if a reallocation is needed outright */
     if (idx >= buffer->allocated - 1) {
         expand_buffer(&buffer);
     }
     /* walk forward thru buffer to make room for insertion */
-    int reverse_idx = idx;
     while (reverse_idx < buffer->allocated && buffer->content[reverse_idx] != '\0') {
         reverse_idx++;
     }
@@ -66,11 +67,12 @@ void process_nullchar_for_buffer(Buffer* buffer, int buffer_index) {
 }
 
 void delete_character_from_buffer(Buffer* buffer, int buffer_index) {
+    int reverse_index = buffer_index;
+
     /* just make sure we don't access anything oob */
     if (buffer_index < 0) {
         return;
     }
-    int reverse_index = buffer_index;
     while (reverse_index < buffer->allocated && buffer->content[reverse_index] != '\0') {
         buffer->content[reverse_index] = buffer->content[reverse_index + 1];
         reverse_index++;

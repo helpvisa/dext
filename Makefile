@@ -3,15 +3,16 @@
 CC = cc
 LDLIBS = -lcurses
 LDFLAGS =
-CFLAGS =
+CFLAGS = -ansi -pedantic
 PREFIX = /usr/local
 
 all: main.o
-	$(CC) -Wall $(LDFLAGS) -o dext main.o buffers.o helpers.o $(LDLIBS)
+	$(CC) -Wall $(LDFLAGS) -o dext main.o buffers.o helpers.o render.o $(LDLIBS)
 
-main.o: main.c buffers.o helpers.o
+main.o: main.c buffers.o helpers.o render.o
 buffers.o: buffers.c buffers.h
 helpers.o: helpers.c helpers.h
+render.o: render.c render.h
 
 install: all
 	cp dext $(PREFIX)/bin/
