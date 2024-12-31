@@ -100,3 +100,11 @@ void push_to_next_buffer(Buffer* next_buffer, Buffer* current_buffer, int buffer
         delete_character_from_buffer(current_buffer, reverse_index);
     }
 }
+
+int find_buffer_position_from_cursor(struct Line* head, int cx, int cy) {
+    /* would current cursor idx move into previous line? */
+    /* if yes, subtract an additional y to account for paragraph spacing */
+    /* if first line, set buffer_idx to 0 */
+    /* travel through lines until we get to the buffer_idx that corresponds
+     * to the current cx and cy values */
+}
