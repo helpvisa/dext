@@ -22,6 +22,7 @@ It is not yet possible to compile dext on Windows platforms with the provided Ma
 
 dext is currently known to compile with:
 - tcc (tiny C compiler)
+- pcc
 - gcc
 - clang
 - cproc
