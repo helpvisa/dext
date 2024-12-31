@@ -133,7 +133,7 @@ void finalize_cursor_position(
         struct Line* head, struct Line* current_line) {
     int current_line_idx = 0;
     int line_counter = 0;
-    char* content;
+    char* content = current_line->buffer->content;
 
     *cy = line_idx * 2;
     while (line_counter < line_idx) {
@@ -144,7 +144,6 @@ void finalize_cursor_position(
 
     *cx = left_margin;
     move(*cy, *cx);
-    content = current_line->buffer->content;
     while(current_line_idx < buffer_idx) {
         int current_word_length = 0;
         while (current_line_idx < buffer_idx &&
@@ -155,7 +154,8 @@ void finalize_cursor_position(
             current_word_length++;
             current_line_idx++;
             *cx += 1;
-            if (current_word_length > 10 && *cx - left_margin > renderable_line_length - 2) {
+            if (current_word_length > 10 &&
+                *cx - left_margin > renderable_line_length - 2) {
                 break;
             }
         }
@@ -164,7 +164,9 @@ void finalize_cursor_position(
             *cy += 1;
             move(*cy, *cx);
         }
-        if (content[current_line_idx] == ' ' || content[current_line_idx] == '-') {
+        if ((content[current_line_idx] == ' ' ||
+            content[current_line_idx] == '-') &&
+            buffer_idx != current_line_idx) {
             *cx += 1;
         }
         current_line_idx++;

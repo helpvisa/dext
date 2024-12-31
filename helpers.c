@@ -101,10 +101,98 @@ void push_to_next_buffer(Buffer* next_buffer, Buffer* current_buffer, int buffer
     }
 }
 
-int find_buffer_position_from_cursor(struct Line* head, int cx, int cy) {
-    /* would current cursor idx move into previous line? */
-    /* if yes, subtract an additional y to account for paragraph spacing */
-    /* if first line, set buffer_idx to 0 */
-    /* travel through lines until we get to the buffer_idx that corresponds
-     * to the current cx and cy values */
+void move_cursor_up_formatted_line(
+        int cx, int cy, int left_margin,
+        int* buffer_idx, int* line_idx, int renderable_line_length,
+        struct Line* head, struct Line** current_line) {
+    int local_cx, local_cy, line_counter = 0;
+    int current_line_idx = 0;
+    char* content = (*current_line)->buffer->content;
+
+    local_cy = *line_idx * 2;
+    while (line_counter < *line_idx) {
+        Buffer* count_buffer = find_line_at_index(head, line_counter)->buffer;
+        local_cy += (strlen(count_buffer->content) - 1) / renderable_line_length;
+        line_counter++;
+    }
+
+    local_cx = left_margin;
+    while(current_line_idx < (*current_line)->buffer->allocated) {
+        int current_word_length = 0;
+        while (current_line_idx < *buffer_idx &&
+               ' ' != content[current_line_idx] &&
+               '-' != content[current_line_idx] &&
+               '\n' != content[current_line_idx] &&
+               '\0' != content[current_line_idx]) {
+            /* shouldn't reach cx at cy first, we need to go back a line */
+            if (local_cy == cy && local_cx == cx) {
+                if (*line_idx > 0) {
+                    *line_idx -= 1;
+                    *current_line = find_line_at_index(head, *line_idx);
+                    content = (*current_line)->buffer->content;
+                    if (strlen(content) < *buffer_idx) {
+                        *buffer_idx = strlen(content);
+                    }
+                    /* call 'movedown' func for however many formatted
+                     * rows are left in the above line */
+                    return;
+                } else {
+                    *buffer_idx = 0;
+                    return;
+                }
+            } else if (local_cy == cy - 1 && local_cx == cx) {
+                *buffer_idx = current_line_idx;
+                return;
+            }
+
+            current_word_length++;
+            current_line_idx++;
+            local_cx += 1;
+            if (current_word_length > 10 &&
+                local_cx - left_margin > renderable_line_length - 2) {
+                break;
+            }
+        }
+        if (local_cx - left_margin > renderable_line_length - 1) {
+            local_cx = left_margin + current_word_length;
+            local_cy += 1;
+        }
+        if (content[current_line_idx] == ' ' ||
+            content[current_line_idx] == '-') {
+            if (local_cy == cy && local_cx == cx) {
+                if (*line_idx > 0) {
+                    *line_idx -= 1;
+                    *current_line = find_line_at_index(head, *line_idx);
+                    content = (*current_line)->buffer->content;
+                    if (strlen(content) < *buffer_idx) {
+                        *buffer_idx = strlen(content);
+                    }
+                    /* call 'movedown' func for however many formatted
+                     * rows are left in the above line */
+                    return;
+                } else {
+                    *buffer_idx = 0;
+                    return;
+                }
+            } else if (local_cy == cy - 1 && local_cx == cx) {
+                *buffer_idx = current_line_idx;
+                return;
+            }
+            local_cx += 1;
+        }
+        current_line_idx++;
+    }
+    /* we're still here? we need to go up a line */
+    if (*line_idx > 0) {
+        *line_idx -= 1;
+        *current_line = find_line_at_index(head, *line_idx);
+        content = (*current_line)->buffer->content;
+        if (strlen(content) < *buffer_idx) {
+            *buffer_idx = strlen(content);
+        }
+        /* call 'movedown' func for however many formatted
+         * rows are left in the above line */
+    } else {
+        *buffer_idx = 0;
+    }
 }

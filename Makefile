@@ -3,7 +3,7 @@
 CC = cc
 LDLIBS = -lcurses
 LDFLAGS =
-CFLAGS = -ansi -pedantic
+CFLAGS =
 PREFIX = /usr/local
 
 all: main.o
