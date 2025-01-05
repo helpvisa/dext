@@ -119,9 +119,8 @@ void move_cursor_up_formatted_line(
     local_cx = left_margin;
     while(current_line_idx < (*current_line)->buffer->allocated) {
         int current_word_length = 0;
-        while (current_line_idx < *buffer_idx &&
+        while (current_line_idx < (*current_line)->buffer->allocated &&
                ' ' != content[current_line_idx] &&
-               '-' != content[current_line_idx] &&
                '\n' != content[current_line_idx] &&
                '\0' != content[current_line_idx]) {
             /* shouldn't reach cx at cy first, we need to go back a line */
@@ -148,17 +147,12 @@ void move_cursor_up_formatted_line(
             current_word_length++;
             current_line_idx++;
             local_cx += 1;
-            if (current_word_length > 10 &&
-                local_cx - left_margin > renderable_line_length - 2) {
-                break;
-            }
         }
         if (local_cx - left_margin > renderable_line_length - 1) {
             local_cx = left_margin + current_word_length;
             local_cy += 1;
         }
-        if (content[current_line_idx] == ' ' ||
-            content[current_line_idx] == '-') {
+        if (content[current_line_idx] == ' ') {
             if (local_cy == cy && local_cx == cx) {
                 if (*line_idx > 0) {
                     *line_idx -= 1;

@@ -77,7 +77,6 @@ void render_formatted_lines(
 
             while (current_line_idx < line_to_render->buffer->allocated &&
                    ' ' != content[current_line_idx] &&
-                   '-' != content[current_line_idx] &&
                    '\n' != content[current_line_idx] &&
                    '\0' != content[current_line_idx]) {
                 process_character_for_buffer_with_nullchar(
@@ -88,16 +87,6 @@ void render_formatted_lines(
                 render_idx++;
                 current_line_idx++;
                 cx++;
-                /* TODO: fix (it gets overwritten by next char atm */
-                /* this code generated another '-' on the newline... why? */
-                if (render_idx > 10 && cx - left_margin > renderable_line_length - 1) {
-                    process_character_for_buffer_with_nullchar(
-                            render_buffer,
-                            render_idx,
-                            '-',
-                            0);
-                    break;
-                }
             }
             if (cx - left_margin > renderable_line_length) {
                 cx = left_margin;
@@ -146,17 +135,16 @@ void finalize_cursor_position(
     move(*cy, *cx);
     while(current_line_idx < buffer_idx) {
         int current_word_length = 0;
-        while (current_line_idx < buffer_idx &&
+        int steps_past_buffer_idx = 0;
+        while (current_line_idx < current_line->buffer->allocated &&
                ' ' != content[current_line_idx] &&
-               '-' != content[current_line_idx] &&
                '\n' != content[current_line_idx] &&
                '\0' != content[current_line_idx]) {
             current_word_length++;
             current_line_idx++;
             *cx += 1;
-            if (current_word_length > 10 &&
-                *cx - left_margin > renderable_line_length - 2) {
-                break;
+            if (current_line_idx > buffer_idx) {
+                steps_past_buffer_idx++;
             }
         }
         if (*cx - left_margin > renderable_line_length - 1) {
@@ -164,8 +152,11 @@ void finalize_cursor_position(
             *cy += 1;
             move(*cy, *cx);
         }
-        if ((content[current_line_idx] == ' ' ||
-            content[current_line_idx] == '-') &&
+        if (current_line_idx > buffer_idx) {
+            current_line_idx -= steps_past_buffer_idx;
+            *cx -= steps_past_buffer_idx;
+        }
+        if (content[current_line_idx] == ' ' &&
             buffer_idx != current_line_idx) {
             *cx += 1;
         }

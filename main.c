@@ -95,6 +95,10 @@ int main(int argc, char* argv[]) {
                 }
                 nodelay(stdscr, FALSE);
                 break;
+            /* 127 and 8 are alternate keycodes for backspace */
+            /* they allow backspace to work on NetBSD and FreeBSD */
+            case 127:
+            case 8:
             case 'h':
             case KEY_BACKSPACE:
             case KEY_LEFT:
@@ -157,6 +161,9 @@ int main(int argc, char* argv[]) {
                 if (buffer_idx < strlen(current_line->buffer->content)
                     && current_line->buffer->content[buffer_idx] != '\0') {
                         buffer_idx++;
+                } else {
+                    process_character_for_buffer(current_line->buffer, buffer_idx, ' ', insert);
+                    buffer_idx++;
                 }
                 break;
             case 'R':
@@ -175,6 +182,10 @@ int main(int argc, char* argv[]) {
             /* nothing */
             case EOF:
                 break;
+            /* 127 and 8 are alternate keycodes for backspace */
+            /* they allow backspace to work on NetBSD and FreeBSD */
+            case 127:
+            case 8:
             case KEY_BACKSPACE:
                 if (buffer_idx > 0) {
                     buffer_idx--;
