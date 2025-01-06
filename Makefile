@@ -6,22 +6,34 @@ LDFLAGS =
 CFLAGS =
 PREFIX = /usr/local
 
-all: main.o
-	$(CC) -Wall $(LDFLAGS) -o dext main.o buffers.o helpers.o render.o $(LDLIBS)
+VPATH = src
+BUILDDIR = build
 
-main.o: main.c buffers.o helpers.o render.o
-buffers.o: buffers.c buffers.h
-helpers.o: helpers.c helpers.h
-render.o: render.c render.h
+all: build $(BUILDDIR)/main.o
+	$(CC) -Wall $(LDFLAGS) -o $(BUILDDIR)/dext \
+		$(BUILDDIR)/main.o \
+		$(BUILDDIR)/buffers.o \
+		$(BUILDDIR)/helpers.o \
+		$(BUILDDIR)/render.o \
+		$(LDLIBS)
+
+build:
+	mkdir -vp build
+
+$(BUILDDIR)/%.o: %.c
+	$(CC) -c $< -o $@
+
+$(BUILDDIR)/main.o: main.c \
+	$(BUILDDIR)/buffers.o \
+	$(BUILDDIR)/helpers.o \
+	$(BUILDDIR)/render.o
+$(BUILDDIR)/buffers.o: buffers.c buffers.h
+$(BUILDDIR)/helpers.o: helpers.c helpers.h
+$(BUILDDIR)/render.o: render.c render.h
 
 install: all
 	cp dext $(PREFIX)/bin/
 	cp dewc $(PREFIX)/bin/
 
 clean:
-	rm -f ./dext
-	rm -f ./*.o
-
-.SUFFIXES: .c .o
-.c.o:
-	$(CC) $(CFLAGS) -c $<
+	rm -rf $(BUILDDIR)
