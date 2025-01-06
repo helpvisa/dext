@@ -17,6 +17,7 @@ dext is currently under heavy development; it should be considered a proof of co
 dext aims to support the ANSI C89 standard. Why? Because it would be fun to get it to build on DOS or other similarly irrelevant operating systems (and fun is important)!
 
 For the time being, you should be able to compile by installing your chosen platform's curses library (on linux this is usually ncurses) and running ```make```.
+Compiling dext on *BSD systems requires gmake.
 
 It is not yet possible to compile dext on Windows platforms with the provided Makefile.
 
@@ -26,8 +27,5 @@ dext is currently known to compile with:
 - gcc
 - clang
 - cproc
-
-## known issues on NetBSD and FreeBSD
-For some reason the escape key produces garbled characters on NetBSD and FreeBSD instead of backspacing. If you're more familiar with the curses implementations of these two platforms, let me know what the problem might be!
 
 dext operates as expected on OpenBSD.
