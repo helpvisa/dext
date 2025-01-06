@@ -1,5 +1,6 @@
 .POSIX:
 .SUFFIXES:
+
 CC = cc
 LDLIBS = -lcurses
 LDFLAGS =
@@ -18,7 +19,7 @@ all: build $(BUILDDIR)/main.o
 		$(LDLIBS)
 
 build:
-	mkdir -vp build
+	mkdir -p build
 
 $(BUILDDIR)/%.o: %.c
 	$(CC) -c $< -o $@
