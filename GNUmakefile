@@ -24,6 +24,9 @@ all: build $(OBJ)
 build:
 	mkdir -p build
 
+run: all
+	./build/dext
+
 $(BUILDDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 

@@ -92,6 +92,7 @@ int main(int argc, char* argv[]) {
                     default:
                         break;
                     }
+            break;
 	    case 'x':
 	       run_loop = 0;
 	       break;
