@@ -28,10 +28,16 @@ void delete_character_from_buffer(Buffer* buffer, int buffer_index);
 void pilfer_character_from_buffer(Buffer* next_buffer, Buffer* current_buffer);
 void push_to_next_buffer(Buffer* next_buffer, Buffer* current_buffer, int buffer_index);
 
+void move_cursor_down_formatted_line(
+    int cx, int cy, int left_margin,
+    int* buffer_idx, int* line_idx, int renderable_line_length,
+    struct Line* head, struct Line** current_line, int total_lines
+);
+
 void move_cursor_up_formatted_line(
     int cx, int cy, int left_margin,
     int* buffer_idx, int* line_idx, int renderable_line_length,
-    struct Line* head, struct Line** current_line
+    struct Line* head, struct Line** current_line, int total_lines
 );
 
 #endif
