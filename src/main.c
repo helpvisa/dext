@@ -92,6 +92,9 @@ int main(int argc, char* argv[]) {
                     default:
                         break;
                     }
+	    case 'x':
+	       run_loop = 0;
+	       break;
                 }
                 nodelay(stdscr, FALSE);
                 break;
