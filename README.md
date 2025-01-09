@@ -27,5 +27,3 @@ dext is currently known to compile with:
 - gcc
 - clang
 - cproc
-
-dext operates as expected on OpenBSD.
