@@ -102,6 +102,12 @@ void push_to_next_buffer(Buffer* next_buffer, Buffer* current_buffer, int buffer
     }
 }
 
+/* TODO: how many times the current line / buffer has been wrapped when rendered */
+/* use in move_cursor_up_formatted_line to fix weird when changing line_idx */
+void calculate_line_break_count() {
+    ;
+}
+
 void move_cursor_down_formatted_line(
         int cx, int cy, int left_margin,
         int* buffer_idx, int* line_idx, int renderable_line_length,
@@ -132,8 +138,7 @@ void move_cursor_down_formatted_line(
             current_line_idx++;
             local_cx += 1;
         }
-        /* cursor should jump back to beginning of line here actually */
-        /* use current_word_length to do so? */
+        /* go back to beginning of word so we don't miss indices on new line */
         if (local_cx - left_margin > renderable_line_length - 1) {
             local_cx = left_margin;
             current_line_idx -= (current_word_length);
@@ -216,13 +221,13 @@ void move_cursor_up_formatted_line(
         }
         /* call 'movedown' func for however many formatted
          * rows are left in the above line */
-        /* for (i = 0; i < strlen(content) / renderable_line_length; i++) { */
-        /*     move_cursor_down_formatted_line( */
-        /*         cx, cy, left_margin, */
-        /*         buffer_idx, line_idx, renderable_line_length, */
-        /*         head, current_line, total_lines */
-        /*     ); */
-        /* } */
+        for (i = 0; i < strlen(content) / renderable_line_length; i++) {
+            move_cursor_down_formatted_line(
+                cx, cy, left_margin,
+                buffer_idx, line_idx, renderable_line_length,
+                head, current_line, total_lines
+            );
+        }
     } else {
         *buffer_idx = 0;
     }
