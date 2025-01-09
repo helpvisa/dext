@@ -8,7 +8,8 @@ void print_statusline(
         int max_y, int max_x,
         int line_idx, int total_lines, int buffer_idx,
         int command_mode, int insert,
-        struct Line* current_line) {
+        struct Line* current_line,
+        char* filepath) {
     /* use to fill blank screen space */
     int i;
 
@@ -27,6 +28,7 @@ void print_statusline(
     printw(" | total lines: %i", total_lines);
     printw(" | buffer_idx: %i", buffer_idx);
     printw(" | current buffer size: %ui", current_line->buffer->allocated);
+    printw(" | editing '%s'", filepath);
 
     for (i = 0; i < max_x; i++) {
         addch(' ');

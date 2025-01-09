@@ -19,6 +19,8 @@ all: build $(OBJ)
 		$(BUILDDIR)/buffers.o \
 		$(BUILDDIR)/helpers.o \
 		$(BUILDDIR)/render.o \
+		$(BUILDDIR)/stringop.o \
+		$(BUILDDIR)/io.o \
 		$(LDLIBS)
 
 build:

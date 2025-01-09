@@ -115,6 +115,7 @@ void move_cursor_down_formatted_line(
     int local_cx, local_cy, line_counter = 0;
     int current_line_idx = 0;
     char* content = (*current_line)->buffer->content;
+    int content_length = strlen(content);
 
     local_cy = *line_idx * 2;
     while (line_counter < *line_idx) {
@@ -124,9 +125,9 @@ void move_cursor_down_formatted_line(
     }
 
     local_cx = left_margin;
-    while(current_line_idx < (*current_line)->buffer->allocated) {
+    while(current_line_idx < content_length) {
         int current_word_length = 0;
-        while (current_line_idx < (*current_line)->buffer->allocated &&
+        while (current_line_idx < content_length &&
                ' ' != content[current_line_idx] &&
                '\n' != content[current_line_idx] &&
                '\0' != content[current_line_idx]) {
@@ -157,12 +158,19 @@ void move_cursor_down_formatted_line(
         *current_line = find_line_at_index(head, *line_idx);
         content = (*current_line)->buffer->content;
         *buffer_idx = cx - left_margin;
-        if (strlen(content) < *buffer_idx) {
-            *buffer_idx = strlen(content);
+        content_length = strlen(content);
+        if (content_length < *buffer_idx) {
+            *buffer_idx = content_length;
+            if (*buffer_idx > 0 && content[*buffer_idx] == '\n') {
+                *buffer_idx -= 1;
+            }
         }
         return;
     } else {
-        *buffer_idx = strlen(content);
+        *buffer_idx = content_length;
+        if (*buffer_idx > 0 && content[*buffer_idx] == '\n') {
+            *buffer_idx -= 1;
+        }
         return;
     }
 }
@@ -174,6 +182,7 @@ void move_cursor_up_formatted_line(
     int local_cx, local_cy, line_counter = 0;
     int current_line_idx = 0;
     char* content = (*current_line)->buffer->content;
+    int content_length = strlen(content);
 
     local_cy = *line_idx * 2;
     while (line_counter < *line_idx) {
@@ -183,9 +192,9 @@ void move_cursor_up_formatted_line(
     }
 
     local_cx = left_margin;
-    while(current_line_idx < (*current_line)->buffer->allocated) {
+    while(current_line_idx < content_length) {
         int current_word_length = 0;
-        while (current_line_idx < (*current_line)->buffer->allocated &&
+        while (current_line_idx < content_length &&
                ' ' != content[current_line_idx] &&
                '\n' != content[current_line_idx] &&
                '\0' != content[current_line_idx]) {
@@ -216,8 +225,12 @@ void move_cursor_up_formatted_line(
         *line_idx -= 1;
         *current_line = find_line_at_index(head, *line_idx);
         content = (*current_line)->buffer->content;
-        if (strlen(content) < *buffer_idx) {
-            *buffer_idx = strlen(content);
+        content_length = strlen(content);
+        if (content_length < *buffer_idx) {
+            *buffer_idx = content_length;
+            if (*buffer_idx > 0 && content[*buffer_idx] == '\n') {
+                *buffer_idx -= 1;
+            }
         }
         /* call 'movedown' func for however many formatted
          * rows are left in the above line */
