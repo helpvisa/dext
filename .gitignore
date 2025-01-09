@@ -13,5 +13,10 @@ dewc
 *.test
 *.log
 
+# text files
+*.txt
+*.md
+!README.md
+
 # misc
 .ccls*
