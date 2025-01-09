@@ -132,18 +132,18 @@ void move_cursor_down_formatted_line(
             current_line_idx++;
             local_cx += 1;
         }
+        /* cursor should jump back to beginning of line here actually */
+        /* use current_word_length to do so? */
         if (local_cx - left_margin > renderable_line_length - 1) {
-            local_cx = left_margin + current_word_length;
+            local_cx = left_margin;
+            current_line_idx -= (current_word_length);
             local_cy += 1;
         }
-        /* account for spaces which can stall cx movement and recheck */
-        if (content[current_line_idx] == ' ') {
-            if (local_cy == cy + 1 && local_cx == cx) {
-                *buffer_idx = current_line_idx;
-                return;
-            }
-            local_cx += 1;
+        if (local_cy == cy + 1 && local_cx == cx) {
+            *buffer_idx = current_line_idx;
+            return;
         }
+        local_cx += 1;
         current_line_idx++;
     }
     /* we're still here? we need to go down a line */
@@ -194,17 +194,15 @@ void move_cursor_up_formatted_line(
             local_cx += 1;
         }
         if (local_cx - left_margin > renderable_line_length - 1) {
-            local_cx = left_margin + current_word_length;
+            local_cx = left_margin;
+            current_line_idx -= (current_word_length);
             local_cy += 1;
         }
-        /* account for spaces which can stall cx movement and recheck */
-        if (content[current_line_idx] == ' ') {
-            if (local_cy == cy - 1 && local_cx == cx) {
-                *buffer_idx = current_line_idx;
-                return;
-            }
-            local_cx += 1;
+        if (local_cy == cy - 1 && local_cx == cx) {
+            *buffer_idx = current_line_idx;
+            return;
         }
+        local_cx += 1;
         current_line_idx++;
     }
     /* we're still here? we need to go up a line */
