@@ -27,13 +27,13 @@ build:
 	mkdir -p build
 
 run: all
-	./build/dext
+	./$(BUILDDIR)/dext
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 install: all
-	cp dext $(PREFIX)/bin/
+	cp $(BUILDDIR)/dext $(PREFIX)/bin/
 
 clean:
 	rm -rf $(BUILDDIR)

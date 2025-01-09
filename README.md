@@ -31,8 +31,8 @@ newline characters from getting intermingled with your writing, which can be
 helpful for rendering "unformatted" text files.
 
 Once you are done inserting text, you can press the ```ESC``` key to
-return to ```command``` mode. In command mode, pressing ```q``` twice will
-allow you to exit dext. You can additionally use the ```h```, ```j```,
+return to ```command``` mode. In ```command mode```, pressing ```q``` twice
+will allow you to exit dext. You can additionally use the ```h```, ```j```,
 ```k```, and ```l``` keys to navigate through the text.
 
 Pressing ```ESC``` an additional time while in command mode will put you
@@ -44,10 +44,9 @@ must first change the current filepath with ```r``` and then use ```o```
 to read the file from that location!
 
 ## building
-dext aims to support the ANSI C89 standard.
-Why?
-Because it would be fun to get it to build on DOS or other similarly
-irrelevant operating systems (and fun is important)!
+dext aims to support the ANSI C89 standard. Why? Because it would be fun to get
+it to build on DOS or other similarly irrelevant operating systems (and fun is
+important)!
 
 For the time being, you should be able to compile by installing your chosen
 platform's curses library (on linux this is usually ncurses) and running
@@ -55,8 +54,8 @@ platform's curses library (on linux this is usually ncurses) and running
 
 Compiling dext on *BSD systems requires gmake.
 
-It is not yet possible to compile dext on Windows platforms with the provided
-Makefile.
+dext is untested on Windows, but maybe you can try compiling it with MSYS2 and
+let me know how it goes?
 
 dext is currently known to compile with:
 - tcc (tiny C compiler)
