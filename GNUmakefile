@@ -26,13 +26,13 @@ all: build $(OBJ)
 build:
 	mkdir -p build
 
-run: all
+run:
 	./$(BUILDDIR)/dext
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-install: all
+install:
 	cp $(BUILDDIR)/dext $(PREFIX)/bin/
 
 clean:
