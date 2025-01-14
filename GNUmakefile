@@ -1,5 +1,9 @@
 .POSIX:
 .SUFFIXES:
+.SUFFIXES: .c .o
+.PHONY: all install run clean
+
+SHELL = /bin/sh
 
 CC = cc
 LDLIBS = -lcurses
@@ -13,27 +17,20 @@ SRCDIR = src
 SRC = $(wildcard $(SRCDIR)/*.c)
 OBJ = $(patsubst $(SRCDIR)/%.c, $(BUILDDIR)/%.o, $(SRC))
 
-all: build $(OBJ)
-	$(CC) -Wall $(LDFLAGS) -o $(BUILDDIR)/dext \
-		$(BUILDDIR)/main.o \
-		$(BUILDDIR)/buffers.o \
-		$(BUILDDIR)/helpers.o \
-		$(BUILDDIR)/render.o \
-		$(BUILDDIR)/stringop.o \
-		$(BUILDDIR)/io.o \
-		$(LDLIBS)
+all: build
 
-build:
-	mkdir -p build
-
-run: all
+run: build
 	./$(BUILDDIR)/dext
 
+build: $(OBJ)
+	$(CC) -Wall $(LDFLAGS) -o $(BUILDDIR)/dext $(OBJ) $(LDLIBS)
+
 $(BUILDDIR)/%.o: $(SRCDIR)/%.c
+	mkdir -p build
 	$(CC) $(CFLAGS) -c $< -o $@
 
-install: all
-	cp $(BUILDDIR)/dext $(PREFIX)/bin/
+install: build
+	install -m 0755 $(BUILDDIR)/dext $(PREFIX)/bin/
 
 clean:
 	rm -rf $(BUILDDIR)
