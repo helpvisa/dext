@@ -365,6 +365,18 @@ int main(int argc, char* argv[]) {
                 buffer_idx = 0;
                 break;
             default:
+                if (buffer_idx > renderable_line_length - 1) {
+                    line_idx++;
+                    total_lines++;
+                    create_and_insert_line(&current_line);
+                    push_to_next_buffer(
+                        current_line->next->buffer,
+                        current_line->buffer,
+                        buffer_idx
+                    );
+                    current_line = find_line_at_index(first_line, line_idx);
+                    buffer_idx = 0;
+                }
                 process_character_for_buffer(current_line->buffer, buffer_idx, c, insert);
                 buffer_idx++;
                 break;
