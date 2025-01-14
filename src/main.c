@@ -129,7 +129,8 @@ int main(int argc, char* argv[]) {
                 move(max_y / 2 - 1, max_x / 2 - 14);
                 printw("INPUT A COMMAND OR PRESS ESC");
 
-                /* timeout(-1); */
+                /* disable timeout when entering extended commands */
+                timeout(-1);
 
                 c2 = getch();
                 switch (c2) {
@@ -142,8 +143,6 @@ int main(int argc, char* argv[]) {
                     move(max_y / 2 - 1, max_x / 2 - 7);
                     printw("NEW FILENAME:");
                     move(max_y / 2, max_x / 2 - 7);
-                    /* pause timeout */
-                    timeout(-1);
                     /* we must track cursor bc of text entry here */
                     getyx(stdscr, cy, cx);
                     /* reset iterator */
@@ -171,7 +170,7 @@ int main(int argc, char* argv[]) {
                     }
                     break;
                 case 'w':
-                    /* lower timeout */
+                    /* set timeout so screen disappears organically */
                     timeout(1000);
                     clear();
                     refresh();
@@ -181,7 +180,7 @@ int main(int argc, char* argv[]) {
                     getch();
                     break;
                 case 'o':
-                    /* lower timout */
+                    /* set timeout so screen disappears organically */
                     timeout(1000);
                     clear();
                     refresh();
@@ -207,7 +206,7 @@ int main(int argc, char* argv[]) {
                     break;
                 }
 
-                /* reset timeout, just in case */
+                /* reset timeout for main loop */
                 timeout(2000);
                 break;
             /* 127 and 8 are alternate keycodes for backspace */
