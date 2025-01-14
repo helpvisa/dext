@@ -81,7 +81,6 @@ int main(int argc, char* argv[]) {
         getmaxyx(stdscr, max_y, max_x);
 
         if (max_y < 8 || max_x < renderable_line_length + 8) {
-            curs_set(FALSE);
             erase();
             move(0,0);
             printw("Please resize to at least:\n8 rows\n%i columns", renderable_line_length + 8);
@@ -123,6 +122,7 @@ int main(int argc, char* argv[]) {
             /* extended commands with escape */
             /* 27 is ASCII code for escape key */
             case 27:
+            case ':':
                 clear();
                 refresh();
 
@@ -143,18 +143,32 @@ int main(int argc, char* argv[]) {
                     printw("NEW FILENAME:");
                     move(max_y / 2, max_x / 2 - 7);
                     /* pause timeout */
-                    /* timeout(-1); */
+                    timeout(-1);
+                    /* we must track cursor bc of text entry here */
+                    getyx(stdscr, cy, cx);
                     /* reset iterator */
                     i = 0;
                     c3 = getch();
-                    while (c3 != '\n' && i < 4095) {
-                        addch(c3);
-                        command_buffer[i] = c3;
-                        i++;
+                    while (c3 != '\n' && c3 != 27 && i < 4095) {
+                        if (c3 != 127 && c3 != 8 && c3 != KEY_BACKSPACE) {
+                            addch(c3);
+                            cx++;
+                            command_buffer[i] = c3;
+                            i++;
+                        } else if (i > 0) {
+                            i--;
+                            cx--;
+                            move(cy, cx);
+                            delch();
+                            command_buffer[i] = '\0';
+                        }
                         c3 = getch();
                     }
                     command_buffer[i] = '\0';
-                    copy_string(filepath, command_buffer, 4095);
+                    /* only accept rename if ESC was not pressed */
+                    if (c3 != 27) {
+                        copy_string(filepath, command_buffer, 4095);
+                    }
                     break;
                 case 'w':
                     /* lower timeout */
