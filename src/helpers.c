@@ -119,13 +119,13 @@ void move_cursor_down_formatted_line(
             *buffer_idx = current_line_length;
             if (insert) {
                 while (*buffer_idx > 0 &&
-                       ((*current_line)->buffer->content[*buffer_idx] == '\n' ||
-                       (*current_line)->buffer->content[*buffer_idx] == '\0')) {
+                       (*current_line)->buffer->content[*buffer_idx] == '\0') {
                     *buffer_idx -= 1;
                 }
             } else {
                 while (*buffer_idx > 0 &&
-                       (*current_line)->buffer->content[*buffer_idx] == '\0') {
+                       ((*current_line)->buffer->content[*buffer_idx] == '\n' ||
+                       (*current_line)->buffer->content[*buffer_idx] == '\0')) {
                     *buffer_idx -= 1;
                 }
             }
@@ -144,13 +144,13 @@ void move_cursor_up_formatted_line(
             *buffer_idx = current_line_length;
             if (insert) {
                 while (*buffer_idx > 0 &&
-                       ((*current_line)->buffer->content[*buffer_idx] == '\n' ||
-                       (*current_line)->buffer->content[*buffer_idx] == '\0')) {
+                       (*current_line)->buffer->content[*buffer_idx] == '\0') {
                     *buffer_idx -= 1;
                 }
             } else {
                 while (*buffer_idx > 0 &&
-                       (*current_line)->buffer->content[*buffer_idx] == '\0') {
+                       ((*current_line)->buffer->content[*buffer_idx] == '\n' ||
+                       (*current_line)->buffer->content[*buffer_idx] == '\0')) {
                     *buffer_idx -= 1;
                 }
             }

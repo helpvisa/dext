@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
     int run_loop = 1;
     /* general editor modes */
     int command_mode = 1;
-    int insert = 1;
+    int insert = 0;
 
     /* window and cursor tracking */
     /* c2 is for 'two-order' commands */
@@ -289,6 +289,7 @@ int main(int argc, char* argv[]) {
             switch (c) {
             /* 27 is ASCII code for escape key */
             case 27:
+                insert = 0;
                 if (buffer_idx > 0 &&
                     (current_line->buffer->content[buffer_idx] == '\n' ||
                      current_line->buffer->content[buffer_idx] == '\0')) {
