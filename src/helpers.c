@@ -109,139 +109,51 @@ void calculate_line_break_count() {
 }
 
 void move_cursor_down_formatted_line(
-        int cx, int cy, int left_margin,
-        int* buffer_idx, int* line_idx, int renderable_line_length,
+        int* buffer_idx, int* line_idx, int insert,
         struct Line* head, struct Line** current_line, int total_lines) {
-    int local_cx, local_cy, line_counter = 0;
-    int current_line_idx = 0;
-    char* content = (*current_line)->buffer->content;
-    int content_length = strlen(content);
-
-    local_cy = *line_idx * 2;
-    while (line_counter < *line_idx) {
-        Buffer* count_buffer = find_line_at_index(head, line_counter)->buffer;
-        local_cy += (strlen(count_buffer->content) - 1) / renderable_line_length;
-        line_counter++;
-    }
-
-    local_cx = left_margin;
-    while(current_line_idx < content_length) {
-        int current_word_length = 0;
-        while (current_line_idx < content_length &&
-               ' ' != content[current_line_idx] &&
-               '\n' != content[current_line_idx] &&
-               '\0' != content[current_line_idx]) {
-            if (local_cy == cy + 1 && local_cx == cx) {
-                *buffer_idx = current_line_idx;
-                return;
-            }
-            current_word_length++;
-            current_line_idx++;
-            local_cx += 1;
-        }
-        /* go back to beginning of word so we don't miss indices on new line */
-        if (local_cx - left_margin > renderable_line_length - 1) {
-            local_cx = left_margin;
-            current_line_idx -= (current_word_length);
-            local_cy += 1;
-        }
-        if (local_cy == cy + 1 && local_cx == cx) {
-            *buffer_idx = current_line_idx;
-            return;
-        }
-        local_cx += 1;
-        current_line_idx++;
-    }
-    /* we're still here? we need to go down a line */
-    if (*line_idx < total_lines - 1) {
+    if (*line_idx + 1 < total_lines) {
         *line_idx += 1;
         *current_line = find_line_at_index(head, *line_idx);
-        content = (*current_line)->buffer->content;
-        *buffer_idx = cx - left_margin;
-        content_length = strlen(content);
-        if (content_length < *buffer_idx) {
-            *buffer_idx = content_length;
-            if (*buffer_idx > 0 && content[*buffer_idx] == '\n') {
-                *buffer_idx -= 1;
+        int current_line_length = strlen((*current_line)->buffer->content) - 1;
+        if (*buffer_idx > current_line_length) {
+            *buffer_idx = current_line_length;
+            if (insert) {
+                while (*buffer_idx > 0 &&
+                       ((*current_line)->buffer->content[*buffer_idx] == '\n' ||
+                       (*current_line)->buffer->content[*buffer_idx] == '\0')) {
+                    *buffer_idx -= 1;
+                }
+            } else {
+                while (*buffer_idx > 0 &&
+                       (*current_line)->buffer->content[*buffer_idx] == '\0') {
+                    *buffer_idx -= 1;
+                }
             }
         }
-        return;
-    } else {
-        *buffer_idx = content_length;
-        if (*buffer_idx > 0 && content[*buffer_idx] == '\n') {
-            *buffer_idx -= 1;
-        }
-        return;
     }
 }
 
 void move_cursor_up_formatted_line(
-        int cx, int cy, int left_margin,
-        int* buffer_idx, int* line_idx, int renderable_line_length,
+        int* buffer_idx, int* line_idx, int insert,
         struct Line* head, struct Line** current_line, int total_lines) {
-    int local_cx, local_cy, line_counter = 0;
-    int current_line_idx = 0;
-    char* content = (*current_line)->buffer->content;
-    int content_length = strlen(content);
-
-    local_cy = *line_idx * 2;
-    while (line_counter < *line_idx) {
-        Buffer* count_buffer = find_line_at_index(head, line_counter)->buffer;
-        local_cy += (strlen(count_buffer->content) - 1) / renderable_line_length;
-        line_counter++;
-    }
-
-    local_cx = left_margin;
-    while(current_line_idx < content_length) {
-        int current_word_length = 0;
-        while (current_line_idx < content_length &&
-               ' ' != content[current_line_idx] &&
-               '\n' != content[current_line_idx] &&
-               '\0' != content[current_line_idx]) {
-            if (local_cy == cy - 1 && local_cx == cx) {
-                *buffer_idx = current_line_idx;
-                return;
-            }
-
-            current_word_length++;
-            current_line_idx++;
-            local_cx += 1;
-        }
-        if (local_cx - left_margin > renderable_line_length - 1) {
-            local_cx = left_margin;
-            current_line_idx -= (current_word_length);
-            local_cy += 1;
-        }
-        if (local_cy == cy - 1 && local_cx == cx) {
-            *buffer_idx = current_line_idx;
-            return;
-        }
-        local_cx += 1;
-        current_line_idx++;
-    }
-    /* we're still here? we need to go up a line */
-    if (*line_idx > 0) {
-        int i;
+    if (*line_idx - 1 > 0) {
         *line_idx -= 1;
         *current_line = find_line_at_index(head, *line_idx);
-        content = (*current_line)->buffer->content;
-        content_length = strlen(content);
-        if (content_length < *buffer_idx) {
-            *buffer_idx = content_length;
-            if (*buffer_idx > 0 && content[*buffer_idx] == '\n') {
-                *buffer_idx -= 1;
+        int current_line_length = strlen((*current_line)->buffer->content) - 1;
+        if (*buffer_idx > current_line_length) {
+            *buffer_idx = current_line_length;
+            if (insert) {
+                while (*buffer_idx > 0 &&
+                       ((*current_line)->buffer->content[*buffer_idx] == '\n' ||
+                       (*current_line)->buffer->content[*buffer_idx] == '\0')) {
+                    *buffer_idx -= 1;
+                }
+            } else {
+                while (*buffer_idx > 0 &&
+                       (*current_line)->buffer->content[*buffer_idx] == '\0') {
+                    *buffer_idx -= 1;
+                }
             }
         }
-        /* call 'movedown' func for however many formatted
-         * rows are left in the above line */
-        /* for (i = 0; i < strlen(content) / renderable_line_length; i++) { */
-        /*     move_cursor_down_formatted_line( */
-        /*         cx, cy, left_margin, */
-        /*         buffer_idx, line_idx, renderable_line_length, */
-        /*         head, current_line, total_lines */
-        /*     ); */
-        /* } */
-    } else {
-        *buffer_idx = 0;
     }
 }

@@ -41,7 +41,6 @@ void render_formatted_lines(
         struct Line* head,
         int left_margin,
         int renderable_line_length) {
-    Buffer* render_buffer = NULL;
     struct Line* line_to_render = head;
     /* print numbers for non-empty lines */
     /* we increment idx first so we don't start at 0 */
@@ -49,72 +48,25 @@ void render_formatted_lines(
     int cy = 0;
 
     while (line_to_render != NULL) {
-        /* subtract 4 from left_margin due to paragraph denominator length */
+        /* subtract 4 from left_margin due to line denominator length */
         int cx = left_margin - 4;
-        int current_line_idx = 0;
         char* content = line_to_render->buffer->content;
 
-        /* print paragraph denomination */
+        /* print line denomination */
         move(cy, cx);
-        attron(A_ITALIC);
         attron(A_DIM);
         printw("%3i ", idx_of_line_to_render);
-        attroff(A_ITALIC);
         attroff(A_DIM);
 
-        /* increment paragraph denomination counter */
+        /* increment line denomination counter */
         idx_of_line_to_render++;
 
         /* print line content */
         cx = left_margin;
         move(cy, cx);
-        while (current_line_idx < line_to_render->buffer->allocated &&
-               '\0' != content[current_line_idx] &&
-               '\n' != content[current_line_idx]) {
-            int added_extra_char = 0;
-            int render_idx = 0;
-
-            /* zero our render buffer */
-            init_buffer(&render_buffer);
-
-            while (current_line_idx < line_to_render->buffer->allocated &&
-                   ' ' != content[current_line_idx] &&
-                   '\n' != content[current_line_idx] &&
-                   '\0' != content[current_line_idx]) {
-                process_character_for_buffer_with_nullchar(
-                        render_buffer,
-                        render_idx,
-                        content[current_line_idx],
-                        0);
-                render_idx++;
-                current_line_idx++;
-                cx++;
-            }
-            if (cx - left_margin > renderable_line_length) {
-                cx = left_margin;
-                cy++;
-                move(cy, cx);
-            }
-            /* adds space, hypen, or other 'ignored' char from loop above */
-            if (content[current_line_idx] != '\n' && content[current_line_idx] != '\0') {
-                process_character_for_buffer_with_nullchar(
-                        render_buffer,
-                        render_idx,
-                        content[current_line_idx],
-                        0);
-                added_extra_char++;
-            }
-            printw("%s", render_buffer->content);
-            /* we need to getyx so we can store current cx after print */
-            getyx(stdscr, cy, cx);
-            current_line_idx++;
-            /* if >1 we added the ignored char above so we still increment cx */
-            if (added_extra_char) {
-                cx++;
-            }
-        }
+        printw("%s", content);
         line_to_render = line_to_render->next;
-        cy += 2;
+        cy++;
     }
 }
 
@@ -122,47 +74,5 @@ void finalize_cursor_position(
         int* cy, int* cx, int left_margin,
         int buffer_idx, int line_idx, int renderable_line_length,
         struct Line* head, struct Line* current_line) {
-    int current_line_idx = 0;
-    int line_counter = 0;
-    char* content = current_line->buffer->content;
-
-    *cy = line_idx * 2;
-    while (line_counter < line_idx) {
-        Buffer* count_buffer = find_line_at_index(head, line_counter)->buffer;
-        *cy += (strlen(count_buffer->content) - 1) / renderable_line_length;
-        line_counter++;
-    }
-
-    *cx = left_margin;
-    move(*cy, *cx);
-    while(current_line_idx < buffer_idx) {
-        int current_word_length = 0;
-        int steps_past_buffer_idx = 0;
-        while (current_line_idx < current_line->buffer->allocated &&
-               ' ' != content[current_line_idx] &&
-               '\n' != content[current_line_idx] &&
-               '\0' != content[current_line_idx]) {
-            current_word_length++;
-            current_line_idx++;
-            *cx += 1;
-            if (current_line_idx > buffer_idx) {
-                steps_past_buffer_idx++;
-            }
-        }
-        if (*cx - left_margin > renderable_line_length - 1) {
-            *cx = left_margin + current_word_length;
-            *cy += 1;
-            move(*cy, *cx);
-        }
-        if (current_line_idx > buffer_idx) {
-            current_line_idx -= steps_past_buffer_idx;
-            *cx -= steps_past_buffer_idx;
-        }
-        if (content[current_line_idx] == ' ' &&
-            buffer_idx != current_line_idx) {
-            *cx += 1;
-        }
-        current_line_idx++;
-    }
-    move(*cy, *cx);
+    move(line_idx, buffer_idx + left_margin);
 }

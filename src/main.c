@@ -219,25 +219,33 @@ int main(int argc, char* argv[]) {
                 if (buffer_idx > 0) {
                     buffer_idx--;
                 } else if (line_idx > 0) {
-                    line_idx--;
-                    current_line = find_line_at_index(first_line, line_idx);
-                    buffer_idx = strlen(current_line->buffer->content);
-                    if (buffer_idx > 0 && current_line->buffer->content[buffer_idx - 1] == '\n') {
-                        buffer_idx--;
-                    }
+                    // set ridiculously high buffer_idx so it auto-wraps to end
+                    buffer_idx = 999;
+                    move_cursor_up_formatted_line(
+                            &buffer_idx, &line_idx, insert,
+                            first_line, &current_line, total_lines);
                 }
                 break;
             case 'l':
             case KEY_RIGHT:
-                if (current_line->buffer->content[buffer_idx] != '\0' &&
-                    current_line->buffer->content[buffer_idx] != '\n' &&
-                    current_line->buffer->content[buffer_idx + 1] != '\0' &&
-                    current_line->buffer->content[buffer_idx + 1] != '\n') {
-                    buffer_idx++;
-                } else if (line_idx < total_lines - 1) {
-                    line_idx++;
-                    current_line = find_line_at_index(first_line, line_idx);
-                    buffer_idx = 0;
+                if (insert) {
+                    if (current_line->buffer->content[buffer_idx] != '\0' &&
+                        current_line->buffer->content[buffer_idx] != '\n') {
+                        buffer_idx++;
+                    } else if (line_idx < total_lines - 1) {
+                        line_idx++;
+                        current_line = find_line_at_index(first_line, line_idx);
+                        buffer_idx = 0;
+                    }
+                } else {
+                    if (current_line->buffer->content[buffer_idx + 1] != '\0' &&
+                        current_line->buffer->content[buffer_idx + 1] != '\n') {
+                        buffer_idx++;
+                    } else if (line_idx < total_lines - 1) {
+                        line_idx++;
+                        current_line = find_line_at_index(first_line, line_idx);
+                        buffer_idx = 0;
+                    }
                 }
                 break;
             /* now that line-wrapping works, maybe we can reverse-engineer */
@@ -246,15 +254,13 @@ int main(int argc, char* argv[]) {
             case 'k':
             case KEY_UP:
                 move_cursor_up_formatted_line(
-                        cx, cy, left_margin,
-                        &buffer_idx, &line_idx, renderable_line_length,
+                        &buffer_idx, &line_idx, insert,
                         first_line, &current_line, total_lines);
                 break;
             case 'j':
             case KEY_DOWN:
                 move_cursor_down_formatted_line(
-                        cx, cy, left_margin,
-                        &buffer_idx, &line_idx, renderable_line_length,
+                        &buffer_idx, &line_idx, insert,
                         first_line, &current_line, total_lines);
                 break;
             case 'i':
@@ -283,7 +289,9 @@ int main(int argc, char* argv[]) {
             switch (c) {
             /* 27 is ASCII code for escape key */
             case 27:
-                if (buffer_idx > 0) {
+                if (buffer_idx > 0 &&
+                    (current_line->buffer->content[buffer_idx] == '\n' ||
+                     current_line->buffer->content[buffer_idx] == '\0')) {
                     buffer_idx -= 1;
                 }
                 command_mode = 1;
@@ -322,36 +330,42 @@ int main(int argc, char* argv[]) {
                 if (buffer_idx > 0) {
                     buffer_idx--;
                 } else if (line_idx > 0) {
-                    line_idx--;
-                    current_line = find_line_at_index(first_line, line_idx);
-                    buffer_idx = strlen(current_line->buffer->content);
-                    if (buffer_idx > 0 && current_line->buffer->content[buffer_idx - 1] == '\n') {
-                        buffer_idx--;
-                    }
+                    // set ridiculously high buffer_idx so it auto-wraps to end
+                    buffer_idx = 999;
+                    move_cursor_up_formatted_line(
+                            &buffer_idx, &line_idx, insert,
+                            first_line, &current_line, total_lines);
                 }
                 break;
             case KEY_RIGHT:
-                if (current_line->buffer->content[buffer_idx] != '\0' &&
-                    current_line->buffer->content[buffer_idx] != '\n' &&
-                    current_line->buffer->content[buffer_idx + 1] != '\0' &&
-                    current_line->buffer->content[buffer_idx + 1] != '\n') {
-                    buffer_idx++;
-                } else if (line_idx < total_lines - 1) {
-                    line_idx++;
-                    current_line = find_line_at_index(first_line, line_idx);
-                    buffer_idx = 0;
+                if (insert) {
+                    if (current_line->buffer->content[buffer_idx] != '\0' &&
+                        current_line->buffer->content[buffer_idx] != '\n') {
+                        buffer_idx++;
+                    } else if (line_idx < total_lines - 1) {
+                        line_idx++;
+                        current_line = find_line_at_index(first_line, line_idx);
+                        buffer_idx = 0;
+                    }
+                } else {
+                    if (current_line->buffer->content[buffer_idx + 1] != '\0' &&
+                        current_line->buffer->content[buffer_idx + 1] != '\n') {
+                        buffer_idx++;
+                    } else if (line_idx < total_lines - 1) {
+                        line_idx++;
+                        current_line = find_line_at_index(first_line, line_idx);
+                        buffer_idx = 0;
+                    }
                 }
                 break;
             case KEY_UP:
                 move_cursor_up_formatted_line(
-                        cx, cy, left_margin,
-                        &buffer_idx, &line_idx, renderable_line_length,
+                        &buffer_idx, &line_idx, insert,
                         first_line, &current_line, total_lines);
                 break;
             case KEY_DOWN:
                 move_cursor_down_formatted_line(
-                        cx, cy, left_margin,
-                        &buffer_idx, &line_idx, renderable_line_length,
+                        &buffer_idx, &line_idx, insert,
                         first_line, &current_line, total_lines);
                 break;
             case '\n':
