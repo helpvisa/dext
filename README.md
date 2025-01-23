@@ -14,7 +14,6 @@ concept and has many bugs and incomplete features.
 
 ## todo
 - accurate cursor movements up and down through lines of text
-- up-and-down movements remember their 'rightmost' position
 - basic markdown style formatting for headers, bold, and italics
 - gestures for moving forward / backward by word, sentence, or paragraph
 - character, word, sentence, line, and paragraph counts

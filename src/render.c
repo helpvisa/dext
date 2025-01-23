@@ -1,12 +1,12 @@
 #include <string.h>
 #include <curses.h>
 #include "structs.h"
-#include "helpers.h"
-#include "buffers.h"
+/* #include "helpers.h" */
+/* #include "buffers.h" */
 
 void print_statusline(
         int max_y, int max_x,
-        int line_idx, int total_lines, int buffer_idx,
+        int line_idx, int total_lines, int buffer_idx, int preferred_idx,
         int command_mode, int insert,
         struct Line* current_line,
         char* filepath) {
@@ -27,6 +27,7 @@ void print_statusline(
     printw(" | line_idx: %i", line_idx);
     printw(" | total lines: %i", total_lines);
     printw(" | buffer_idx: %i", buffer_idx);
+    printw(" | preferred_idx: %i", preferred_idx);
     printw(" | current buffer size: %ui", current_line->buffer->allocated);
     printw(" | editing '%s'", filepath);
 

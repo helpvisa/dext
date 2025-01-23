@@ -5,7 +5,7 @@
 
 void print_statusline(
         int max_y, int max_x,
-        int line_idx, int total_lines, int buffer_idx,
+        int line_idx, int total_lines, int buffer_idx, int preferred_idx,
         int command_mode, int insert,
         struct Line* current_line,
         char* filepath);

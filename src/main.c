@@ -40,6 +40,7 @@ int main(int argc, char* argv[]) {
     int total_lines = 1;
     int line_idx = 0;
     int buffer_idx = 0;
+    int preferred_idx = 0;
     struct Line* first_line = malloc(sizeof(*first_line));
     struct Line* current_line = first_line;
 
@@ -218,12 +219,14 @@ int main(int argc, char* argv[]) {
             case KEY_LEFT:
                 if (buffer_idx > 0) {
                     buffer_idx--;
+                    preferred_idx = buffer_idx;
                 } else if (line_idx > 0) {
                     // set ridiculously high buffer_idx so it auto-wraps to end
                     buffer_idx = 999;
-                    move_cursor_up_formatted_line(
-                            &buffer_idx, &line_idx, insert,
+                    move_cursor_up_line(
+                            &buffer_idx, &line_idx, insert, &preferred_idx,
                             first_line, &current_line, total_lines);
+                    preferred_idx = buffer_idx;
                 }
                 break;
             case 'l':
@@ -232,19 +235,23 @@ int main(int argc, char* argv[]) {
                     if (current_line->buffer->content[buffer_idx] != '\0' &&
                         current_line->buffer->content[buffer_idx] != '\n') {
                         buffer_idx++;
+                        preferred_idx = buffer_idx;
                     } else if (line_idx < total_lines - 1) {
                         line_idx++;
                         current_line = find_line_at_index(first_line, line_idx);
                         buffer_idx = 0;
+                        preferred_idx = buffer_idx;
                     }
                 } else {
                     if (current_line->buffer->content[buffer_idx + 1] != '\0' &&
                         current_line->buffer->content[buffer_idx + 1] != '\n') {
                         buffer_idx++;
+                        preferred_idx = buffer_idx;
                     } else if (line_idx < total_lines - 1) {
                         line_idx++;
                         current_line = find_line_at_index(first_line, line_idx);
                         buffer_idx = 0;
+                        preferred_idx = buffer_idx;
                     }
                 }
                 break;
@@ -253,14 +260,14 @@ int main(int argc, char* argv[]) {
             /* buffer and line indices */
             case 'k':
             case KEY_UP:
-                move_cursor_up_formatted_line(
-                        &buffer_idx, &line_idx, insert,
+                move_cursor_up_line(
+                        &buffer_idx, &line_idx, insert, &preferred_idx,
                         first_line, &current_line, total_lines);
                 break;
             case 'j':
             case KEY_DOWN:
-                move_cursor_down_formatted_line(
-                        &buffer_idx, &line_idx, insert,
+                move_cursor_down_line(
+                        &buffer_idx, &line_idx, insert, &preferred_idx,
                         first_line, &current_line, total_lines);
                 break;
             case 'i':
@@ -330,12 +337,14 @@ int main(int argc, char* argv[]) {
             case KEY_LEFT:
                 if (buffer_idx > 0) {
                     buffer_idx--;
+                    preferred_idx = buffer_idx;
                 } else if (line_idx > 0) {
                     // set ridiculously high buffer_idx so it auto-wraps to end
                     buffer_idx = 999;
-                    move_cursor_up_formatted_line(
-                            &buffer_idx, &line_idx, insert,
+                    move_cursor_up_line(
+                            &buffer_idx, &line_idx, insert, &preferred_idx,
                             first_line, &current_line, total_lines);
+                    preferred_idx = buffer_idx;
                 }
                 break;
             case KEY_RIGHT:
@@ -343,30 +352,34 @@ int main(int argc, char* argv[]) {
                     if (current_line->buffer->content[buffer_idx] != '\0' &&
                         current_line->buffer->content[buffer_idx] != '\n') {
                         buffer_idx++;
+                        preferred_idx = buffer_idx;
                     } else if (line_idx < total_lines - 1) {
                         line_idx++;
                         current_line = find_line_at_index(first_line, line_idx);
                         buffer_idx = 0;
+                        preferred_idx = buffer_idx;
                     }
                 } else {
                     if (current_line->buffer->content[buffer_idx + 1] != '\0' &&
                         current_line->buffer->content[buffer_idx + 1] != '\n') {
                         buffer_idx++;
+                        preferred_idx = buffer_idx;
                     } else if (line_idx < total_lines - 1) {
                         line_idx++;
                         current_line = find_line_at_index(first_line, line_idx);
                         buffer_idx = 0;
+                        preferred_idx = buffer_idx;
                     }
                 }
                 break;
             case KEY_UP:
-                move_cursor_up_formatted_line(
-                        &buffer_idx, &line_idx, insert,
+                move_cursor_up_line(
+                        &buffer_idx, &line_idx, insert, &preferred_idx,
                         first_line, &current_line, total_lines);
                 break;
             case KEY_DOWN:
-                move_cursor_down_formatted_line(
-                        &buffer_idx, &line_idx, insert,
+                move_cursor_down_line(
+                        &buffer_idx, &line_idx, insert, &preferred_idx,
                         first_line, &current_line, total_lines);
                 break;
             case '\n':
@@ -404,7 +417,7 @@ int main(int argc, char* argv[]) {
         /* statusline */
         print_statusline(
                 max_y, max_x,
-                line_idx, total_lines, buffer_idx,
+                line_idx, total_lines, buffer_idx, preferred_idx,
                 command_mode, insert,
                 current_line,
                 filepath);

@@ -54,6 +54,7 @@ void process_character_for_buffer(Buffer* buffer, int buffer_index, char charact
     }
 }
 
+/* same as above but make sure a nullchar is inserted after the character */
 void process_character_for_buffer_with_nullchar(Buffer* buffer, int buffer_index, char character, int insert_mode) {
     if (insert_mode) {
         insert_into_buffer(buffer, buffer_index, character);
@@ -63,6 +64,7 @@ void process_character_for_buffer_with_nullchar(Buffer* buffer, int buffer_index
     }
 }
 
+/* add a nullchar to the end of a given buffer, for safety */
 void process_nullchar_for_buffer(Buffer* buffer, int buffer_index) {
     replace_in_buffer(buffer, buffer_index, '\0');
 }
@@ -80,6 +82,9 @@ void delete_character_from_buffer(Buffer* buffer, int buffer_index) {
     }
 }
 
+/* used to take characters from another buffer (usually the next line) and
+ * bring them into the current buffer (i.e. we delete a newline character and
+ * combine two lines into one line) */
 void pilfer_character_from_buffer(Buffer* next_buffer, Buffer* current_buffer) {
     int buffer_index = strlen(current_buffer->content) - 1;
     char c = next_buffer->content[0];
@@ -91,6 +96,8 @@ void pilfer_character_from_buffer(Buffer* next_buffer, Buffer* current_buffer) {
     }
 }
 
+/* take all characters after the current buffer_index and pushb them to
+ * the next_buffer */
 void push_to_next_buffer(Buffer* next_buffer, Buffer* current_buffer, int buffer_index) {
     int reverse_index = buffer_index;
     while (reverse_index < current_buffer->allocated && current_buffer->content[reverse_index] != '\0') {
@@ -102,58 +109,76 @@ void push_to_next_buffer(Buffer* next_buffer, Buffer* current_buffer, int buffer
     }
 }
 
-/* TODO: how many times the current line / buffer has been wrapped when rendered */
-/* use in move_cursor_up_formatted_line to fix weird when changing line_idx */
-void calculate_line_break_count() {
+/* travel to the beginning of the current word and bring all its characters
+ * from the current_buffer into the next_buffer (useful when line-wrapping in
+ * the middle of a word) */
+void move_current_word_to_next_buffer(
+         Buffer* next_buffer, Buffer* current_buffer,
+         int buffer_index) {
     ;
 }
 
-void move_cursor_down_formatted_line(
-        int* buffer_idx, int* line_idx, int insert,
+
+void move_cursor_to_end_of_line(int* buffer_idx, int* line_idx, int insert,
+                                int preferred_index,
+                                struct Line* current_line) {
+    int current_line_length = strlen(current_line->buffer->content) - 1;
+    *buffer_idx = preferred_index;
+    if (*buffer_idx > current_line_length) {
+        *buffer_idx = current_line_length;
+    }
+    /* TODO: fix bug where cursor is placed on instead of after final character
+     * for the last line of the document because this line's final character is
+     * itself a nullchar */
+    if (insert) {
+        while (*buffer_idx > 0 &&
+               current_line->buffer->content[*buffer_idx] == '\0') {
+            *buffer_idx -= 1;
+        }
+    } else {
+        while (*buffer_idx > 0 &&
+               (current_line->buffer->content[*buffer_idx] == '\n' ||
+               current_line->buffer->content[*buffer_idx] == '\0')) {
+            *buffer_idx -= 1;
+        }
+    }
+}
+
+void move_cursor_down_line(
+        int* buffer_idx, int* line_idx, int insert, int* preferred_index,
         struct Line* head, struct Line** current_line, int total_lines) {
     if (*line_idx + 1 < total_lines) {
         *line_idx += 1;
         *current_line = find_line_at_index(head, *line_idx);
         int current_line_length = strlen((*current_line)->buffer->content) - 1;
+        *buffer_idx = *preferred_index;
         if (*buffer_idx > current_line_length) {
-            *buffer_idx = current_line_length;
-            if (insert) {
-                while (*buffer_idx > 0 &&
-                       (*current_line)->buffer->content[*buffer_idx] == '\0') {
-                    *buffer_idx -= 1;
-                }
-            } else {
-                while (*buffer_idx > 0 &&
-                       ((*current_line)->buffer->content[*buffer_idx] == '\n' ||
-                       (*current_line)->buffer->content[*buffer_idx] == '\0')) {
-                    *buffer_idx -= 1;
-                }
-            }
+            move_cursor_to_end_of_line(buffer_idx, line_idx, insert,
+                                       *preferred_index, *current_line);
         }
+    } else {
+        /* set to end of line */
+        move_cursor_to_end_of_line(buffer_idx, line_idx, insert,
+                                   9999, *current_line);
+        *preferred_index = *buffer_idx;
     }
 }
 
-void move_cursor_up_formatted_line(
-        int* buffer_idx, int* line_idx, int insert,
+void move_cursor_up_line(
+        int* buffer_idx, int* line_idx, int insert, int* preferred_index,
         struct Line* head, struct Line** current_line, int total_lines) {
-    if (*line_idx - 1 > 0) {
+    if (*line_idx > 0) {
         *line_idx -= 1;
         *current_line = find_line_at_index(head, *line_idx);
         int current_line_length = strlen((*current_line)->buffer->content) - 1;
+        *buffer_idx = *preferred_index;
         if (*buffer_idx > current_line_length) {
-            *buffer_idx = current_line_length;
-            if (insert) {
-                while (*buffer_idx > 0 &&
-                       (*current_line)->buffer->content[*buffer_idx] == '\0') {
-                    *buffer_idx -= 1;
-                }
-            } else {
-                while (*buffer_idx > 0 &&
-                       ((*current_line)->buffer->content[*buffer_idx] == '\n' ||
-                       (*current_line)->buffer->content[*buffer_idx] == '\0')) {
-                    *buffer_idx -= 1;
-                }
-            }
+            move_cursor_to_end_of_line(buffer_idx, line_idx, insert,
+                                       *preferred_index, *current_line);
         }
+    } else {
+        /* reset cursor if we are already on first line */
+        *buffer_idx = 0;
+        *preferred_index = *buffer_idx;
     }
 }
