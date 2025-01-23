@@ -28,7 +28,7 @@ void print_statusline(
     printw(" | total lines: %i", total_lines);
     printw(" | buffer_idx: %i", buffer_idx);
     printw(" | preferred_idx: %i", preferred_idx);
-    printw(" | current buffer size: %ui", current_line->buffer->allocated);
+    printw(" | current buffer size: %u", current_line->buffer->allocated);
     printw(" | editing '%s'", filepath);
 
     for (i = 0; i < max_x; i++) {
