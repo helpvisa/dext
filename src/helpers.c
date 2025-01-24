@@ -88,19 +88,30 @@ void delete_character_from_buffer(Buffer* buffer, int buffer_index) {
 void pilfer_character_from_buffer(Buffer* next_buffer, Buffer* current_buffer,
                                   int renderable_line_length) {
     int buffer_index = strlen(current_buffer->content);
-    int check_index = buffer_index;
-    char c = next_buffer->content[0];
-    process_character_for_buffer(current_buffer, buffer_index, c, 1);
-    delete_character_from_buffer(next_buffer, 0);
+    int check_index = 0;
     /* determine if adding the next 'word' will overflow the line */
-    while (check_index < current_buffer->allocated &&
-           current_buffer->content[check_index] != ' ' &&
-           current_buffer->content[check_index] != '\0') {
+    while (check_index < next_buffer->allocated &&
+           next_buffer->content[check_index] != ' ' &&
+           next_buffer->content[check_index] != '\0') {
         check_index++;
     }
     /* and only add to this line if it doesn't */
-    if (next_buffer->content[0] != '\0' && check_index < renderable_line_length) {
-        pilfer_character_from_buffer(next_buffer, current_buffer, renderable_line_length);
+    if (buffer_index + check_index < renderable_line_length) {
+        char c = next_buffer->content[0];
+        if (c != '\0') {
+            process_character_for_buffer(current_buffer, buffer_index, c, 1);
+            delete_character_from_buffer(next_buffer, 0);
+            if ((current_buffer->content[buffer_index] != ' ' ||
+                next_buffer->content[0] == '\n') &&
+                next_buffer->content[0] != '\0') {
+                pilfer_character_from_buffer(next_buffer, current_buffer, renderable_line_length);
+            } else {
+                /* make sure we add a newline char if it is missing */
+                if (current_buffer->content[buffer_index] != '\n') {
+                    process_character_for_buffer(current_buffer, buffer_index + 1, '\n', 1);
+                }
+            }
+        }
     }
 }
 
@@ -180,12 +191,13 @@ void move_cursor_down_line(
             move_cursor_to_end_of_line(buffer_idx, line_idx, insert,
                                        *preferred_index, *current_line);
         }
-    } else {
-        /* set to end of line */
-        move_cursor_to_end_of_line(buffer_idx, line_idx, insert,
-                                   9999, *current_line);
-        *preferred_index = *buffer_idx;
     }
+    /* } else { */
+        /* set to end of line */
+    /*     move_cursor_to_end_of_line(buffer_idx, line_idx, insert, */
+    /*                                9999, *current_line); */
+    /*     *preferred_index = *buffer_idx; */
+    /* } */
 }
 
 void move_cursor_up_line(
@@ -200,9 +212,10 @@ void move_cursor_up_line(
             move_cursor_to_end_of_line(buffer_idx, line_idx, insert,
                                        *preferred_index, *current_line);
         }
-    } else {
-        /* reset cursor if we are already on first line */
-        *buffer_idx = 0;
-        *preferred_index = *buffer_idx;
     }
+    /* } else { */
+        /* reset cursor if we are already on first line */
+    /*     *buffer_idx = 0; */
+    /*     *preferred_index = *buffer_idx; */
+    /* } */
 }
