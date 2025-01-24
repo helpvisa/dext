@@ -322,6 +322,13 @@ int main(int argc, char* argv[]) {
                                                9999, current_line);
                     delete_character_from_buffer(current_line->buffer, buffer_idx);
                     if (line_idx < total_lines - 1) {
+                        /* TODO: this should really process the entire
+                         * document until it reaches a solitary, paragraph-
+                         * splitting newline character. lines should be 
+                         * shuffled back up to condense the writing and
+                         * automatically format things. a function needs to be
+                         * written for this that wraps the pilfer_character
+                         * func */
                         pilfer_character_from_buffer(current_line->next->buffer,
                                                      current_line->buffer,
                                                      renderable_line_length);
