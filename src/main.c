@@ -222,7 +222,7 @@ int main(int argc, char* argv[]) {
                     preferred_idx = buffer_idx;
                 } else if (line_idx > 0) {
                     // set ridiculously high buffer_idx so it auto-wraps to end
-                    buffer_idx = 999;
+                    preferred_idx = 9999;
                     move_cursor_up_line(
                             &buffer_idx, &line_idx, insert, &preferred_idx,
                             first_line, &current_line, total_lines);
@@ -316,17 +316,15 @@ int main(int argc, char* argv[]) {
                     buffer_idx--;
                     delete_character_from_buffer(current_line->buffer, buffer_idx);
                 } else if (line_idx > 0) {
-                    if (buffer_idx == 0 && current_line->buffer->content[buffer_idx] == '\n') {
-                        delete_character_from_buffer(current_line->buffer, buffer_idx);
-                    }
                     line_idx--;
                     current_line = find_line_at_index(first_line, line_idx);
-                    buffer_idx = strlen(current_line->buffer->content);
-                    if (buffer_idx > 0 && current_line->buffer->content[buffer_idx - 1] == '\n') {
-                        buffer_idx--;
-                    }
+                    move_cursor_to_end_of_line(&buffer_idx, &line_idx, insert,
+                                               9999, current_line);
+                    delete_character_from_buffer(current_line->buffer, buffer_idx);
                     if (line_idx < total_lines - 1) {
-                        pilfer_character_from_buffer(current_line->next->buffer, current_line->buffer);
+                        pilfer_character_from_buffer(current_line->next->buffer,
+                                                     current_line->buffer,
+                                                     renderable_line_length);
                         if (strlen(current_line->next->buffer->content) < 1) {
                             remove_line(&first_line, current_line->next);
                             total_lines--;
@@ -340,7 +338,7 @@ int main(int argc, char* argv[]) {
                     preferred_idx = buffer_idx;
                 } else if (line_idx > 0) {
                     // set ridiculously high buffer_idx so it auto-wraps to end
-                    buffer_idx = 999;
+                    preferred_idx = 9999;
                     move_cursor_up_line(
                             &buffer_idx, &line_idx, insert, &preferred_idx,
                             first_line, &current_line, total_lines);
@@ -397,13 +395,25 @@ int main(int argc, char* argv[]) {
                     line_idx++;
                     total_lines++;
                     create_and_insert_line(&current_line);
-                    push_to_next_buffer(
-                        current_line->next->buffer,
-                        current_line->buffer,
-                        buffer_idx
-                    );
+                    /* if the current character is a space, the word must
+                     * already be finished, so don't bother copying what's
+                     * behind it to the next line */
+                    if (c != ' ') {
+                        move_current_word_to_next_buffer(
+                            current_line->next->buffer,
+                            current_line->buffer,
+                            buffer_idx
+                        );
+                    }
                     current_line = find_line_at_index(first_line, line_idx);
-                    buffer_idx = 0;
+                    /* buffer_idx = 0; */
+                    move_cursor_to_end_of_line(&buffer_idx, &line_idx, insert,
+                                               9999, current_line);
+                    /* increment buffer_idx one more time so the new char
+                     * is inserted after any text copied to the new line */
+                    if (strlen(current_line->buffer->content) > 0) {
+                        buffer_idx++;
+                    }
                 }
                 process_character_for_buffer(current_line->buffer, buffer_idx, c, insert);
                 buffer_idx++;
@@ -425,7 +435,7 @@ int main(int argc, char* argv[]) {
         /* prepare cursor */
         left_margin = max_x / 2 - 36;
         /* curs_set(TRUE); */
-        render_formatted_lines(
+        render_lines(
                 first_line,
                 left_margin,
                 renderable_line_length);

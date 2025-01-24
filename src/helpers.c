@@ -72,7 +72,7 @@ void process_nullchar_for_buffer(Buffer* buffer, int buffer_index) {
 void delete_character_from_buffer(Buffer* buffer, int buffer_index) {
     int reverse_index = buffer_index;
 
-    /* just make sure we don't access anything oob */
+    /* just make sure we don't access anything out of bounds */
     if (buffer_index < 0) {
         return;
     }
@@ -85,14 +85,22 @@ void delete_character_from_buffer(Buffer* buffer, int buffer_index) {
 /* used to take characters from another buffer (usually the next line) and
  * bring them into the current buffer (i.e. we delete a newline character and
  * combine two lines into one line) */
-void pilfer_character_from_buffer(Buffer* next_buffer, Buffer* current_buffer) {
-    int buffer_index = strlen(current_buffer->content) - 1;
+void pilfer_character_from_buffer(Buffer* next_buffer, Buffer* current_buffer,
+                                  int renderable_line_length) {
+    int buffer_index = strlen(current_buffer->content);
+    int check_index = buffer_index;
     char c = next_buffer->content[0];
     process_character_for_buffer(current_buffer, buffer_index, c, 1);
     delete_character_from_buffer(next_buffer, 0);
-    /* if (next_buffer->content[0] != '\n' && next_buffer->content[0] != '\0') { */
-    if (next_buffer->content[0] != '\0') {
-        pilfer_character_from_buffer(next_buffer, current_buffer);
+    /* determine if adding the next 'word' will overflow the line */
+    while (check_index < current_buffer->allocated &&
+           current_buffer->content[check_index] != ' ' &&
+           current_buffer->content[check_index] != '\0') {
+        check_index++;
+    }
+    /* and only add to this line if it doesn't */
+    if (next_buffer->content[0] != '\0' && check_index < renderable_line_length) {
+        pilfer_character_from_buffer(next_buffer, current_buffer, renderable_line_length);
     }
 }
 
@@ -115,7 +123,23 @@ void push_to_next_buffer(Buffer* next_buffer, Buffer* current_buffer, int buffer
 void move_current_word_to_next_buffer(
          Buffer* next_buffer, Buffer* current_buffer,
          int buffer_index) {
-    ;
+    int break_index;
+    int reverse_index = buffer_index;
+    while (reverse_index > 0 && current_buffer->content[reverse_index] != ' ') {
+        reverse_index--;
+    }
+    break_index = reverse_index;
+    /* first we copy the word */
+    while (reverse_index < current_buffer->allocated &&
+           current_buffer->content[++reverse_index] != '\0') {
+        process_character_for_buffer(next_buffer, strlen(next_buffer->content),
+                                     current_buffer->content[reverse_index], 1);
+    }
+    /* now we delete the word */
+    while (buffer_index > break_index) {
+        delete_character_from_buffer(current_buffer, buffer_index);
+        buffer_index--;
+    }
 }
 
 

@@ -10,7 +10,7 @@ void print_statusline(
         struct Line* current_line,
         char* filepath);
 
-void render_formatted_lines(
+void render_lines(
         struct Line* head,
         int left_margin,
         int renderable_line_length);
